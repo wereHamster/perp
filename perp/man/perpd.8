@@ -1,0 +1,375 @@
+.\" perpd.8
+.\" wcm, 2008.02.26 - 2009.12.23
+.\" ===
+.TH perpd 8 "January 2010"  "perp-0.00"  "persistent process supervision"
+.SH NAME
+perpd \- persistent process directory scanner
+.SH SYNOPSIS
+.B perpd [\-hV] [\-a
+.I secs
+.B ] [
+.I basedir
+.B ]
+.SH DESCRIPTION
+.B perpd
+scans a directory to start and monitor a collection of
+.BR perpetrate (8)
+services.
+It is the principal daemon of an active perp installation.
+.PP
+.B perpd
+operates on a base directory containing a set of
+.BR perpetrate (8)
+service definitions.
+The base directory may be given by the
+.I basedir
+argument on the command line.
+If no
+.I basedir
+argument is given,
+.B perpd
+will look for a value associated with the environmental variable PERP_BASE.
+If neither of these is defined,
+.B perpd
+will operate on a compiled-in default directory,
+normally
+.IR /etc/perp .
+.PP
+Service definitions are installed,
+configured and activated as subdirectories of the base directory.
+As
+.B perpd
+sequentially scans the base directory,
+it looks for subdirectory names not beginning with `.'.
+If
+.B perpd
+then finds the `sticky' bit set on the subdirectory,
+it considers the service definition ``active'' and
+attempts to start a
+.BR perpetrate (8)
+process on it:
+.PP
+.RS
+.B perpetrate
+.I svdir
+.RE
+.PP
+.B perpd
+runs each
+.BR perpetrate (8)
+process in a new session and separate process group.
+The environment for each process is defined with the variable
+.B PERP_BASE
+set to the absolute path of the
+.B perpd
+base directory as described above.
+.PP
+If any active
+.BR perpetrate (8)
+process dies,
+.B perpd
+is triggered to immediately rescan the base directory.
+If the service definition still exists and is still active,
+then a new
+.BR perpetrate (8)
+process is started on that subdirectory.
+Otherwise,
+the
+.BR perpetrate (8)
+process is not restarted.
+.PP
+.B perpd
+may be triggered to immediately rescan the base directory with a
+SIGHUP signal or the
+.BR perphup (8)
+command.
+.B perpd
+may also be configured at startup to automatically rescan the
+base directory at fixed intervals given by the
+.B \-a
+option.
+For any new active service definitions found while scanning,
+.B perpd
+will attempt to start a new
+.BR perpetrate (8)
+process on that subdirectory as described above.
+For any existing
+.BR perpetrate (8)
+services whose subdirectory has been removed
+or is no longer sticky,
+.B perpd
+will shut down the associated
+.BR perpetrate (8)
+process and not restart it.
+.PP
+.B perpd
+is designed to start at system boot and continue running until system shutdown.
+Normally a system is configured to start
+.B perpd
+as part of its
+.BR init (8)
+sequence during system startup.
+The
+perp
+distribution
+includes a
+.BR perpboot (8)
+utility,
+specifically designed to provide a reliable method for starting
+.B perpd
+under many different
+.BR init (8)
+environments.
+.\" *** OPTIONS ***
+.SH OPTIONS
+.TP
+.B \-a secs
+Autoscan.
+Normally
+.B perpd
+runs in a quiet
+.BR poll (2)
+state until some external signal or event causes it to rescan the base directory.
+The
+.B \-a
+option may be used to set an interval
+that causes
+.B perpd
+to automatically rescan the base directory every
+.I secs
+seconds.
+For example,
+a
+.I secs
+argument of 5 will cause
+.B perpd
+to automatically rescan the base directory at least once every 5 seconds,
+imitating the behavior of daemontools
+.BR svscan (8).
+An argument of 0 disables autoscanning.
+.TP
+.B \-h
+Help.
+Display a brief help message on stderr and exit.
+.TP
+.B \-V
+Version.
+Display the version string on stderr and exit.
+.\" *** EXAMPLES ***
+.SH EXAMPLES
+.B perpd
+is designed to permit easy service activation/deactivation using the
+.BR chmod (1)
+utility.
+.PP
+To activate a service within the
+.B perpd
+base directory,
+set the sticky bit of the subdirectory containing the
+service definition:
+.PP
+.RS
+chmod +t myservice && perphup
+.RE
+.PP
+.B perpd
+will notice the new service and start a
+.BR perpetrate (8)
+process on it.
+.PP
+To deactivate a service, unset the sticky bit:
+.PP
+.RS
+chmod -t myservice && perphup
+.RE
+.PP
+.B perpd
+will notice the service has been deactivated and send TERM and CONT signals
+to its associated
+.BR perpetrate (8)
+process.
+Note that there is generally no need to use
+.BR perpctl (8)
+to bring down a service before deactivating it.
+Simply unsetting the sticky bit will bring the service down properly.
+.PP
+On some platforms/terminals,
+colorized
+.BR ls (1)
+listings may be configured to display the `sticky' entries within a directory
+so they are readily visible.
+Othewise,
+request
+.BR ls (1)
+to display a long listing format that presents directory permissions in the first column:
+.PP
+.RS
+.nf
+.B # ls -l
+drwxr-xr-x  goodbye
+drwxr-xr-t  hello
+.fi
+.RE
+.PP
+In this truncated and contrived example,
+the service directory
+.I hello
+is active (has sticky bit set; see the `t' in its permission string),
+and the service directory
+.I goodbye
+is not active (sticky bit not set.)
+.PP
+The
+.BR stat (1),
+.BR perpstat (8),
+and
+.BR perpls (8)
+utilities may also be used to display the active services within a directory.
+.\" *** FILES ***
+.SH FILES
+.I /etc/perp
+.RS
+The default base operating directory monitored by 
+.BR perpd ,
+containing the set of service definition directories as described in
+.BR perpetrate (8).
+.RE
+.PP
+.I /PERP_BASE/.control
+.RS
+.B perpd
+and
+.BR perpetrate (8)
+maintain associated runtime files and IPC interfaces within a shadow subdirectory named
+.IR .control .
+Normally this will be configured as a symbolic link
+to a directory within the
+.I /var
+hierarchy before starting
+.BR perpd .
+For example, the symlink:
+.PP
+.RS
+.I .control
+->
+.I /var/run/perp
+.RE
+.PP
+will cause
+.B perpd
+and
+.BR perpetrate (8)
+to maintain their runtime files under
+.IR /var/run/perp .
+If
+.B perpd
+finds that
+.I .control
+is a dangling symlink on startup,
+it will attempt to make the directory that
+.I .control
+points to.
+.RE
+.SH ENVIRONMENT
+PERP_BASE
+.RS
+If no
+.I basedir
+argument is given on the command-line at startup,
+.B perpd
+checks for a value defined with PERP_BASE.
+If this is not defined or empty,
+.B perpd
+uses a compiled-in default for
+.I basedir
+instead, usually
+.IR /etc/perp .
+Irrespective of how
+.I basedir
+is determined at startup,
+.B perpd
+will use its value to define PERP_BASE within the environment of each
+.BR perpetrate (8)
+instance it starts.
+If defined,
+PERP_BASE should be given as an absolute pathname.
+.SH ERROR LOGGING
+.B perpd
+emits diagnostics to stderr.
+To capture and log such messages,
+.B perpd
+will usually be started with an associated logger;
+see
+.BR perpboot (8)
+for a utility designed to start
+.B perpd
+with an associated logger.
+In such an installation,
+the stderr of
+.B perpd
+will be redirected to stdout,
+and, in turn, its stdout will be piped to the stdin of the logger.
+.PP
+Each
+.B perpetrate
+instance inherits the stdout and stderr file descriptors of
+.BR perpd .
+In the normal arrangement described above, where
+.B perpd
+has been setup with a logger,
+any
+.BR perpetrate (8)
+diagnostics will also appear in the
+.B perpd
+logger.
+.\" *** SIGNALS ***
+.SH SIGNALS
+SIGHUP
+.RS
+Triggers
+.B perpd
+to immediately rescan the base directory.
+.RE
+.PP
+SIGTERM
+.RS
+Triggers
+.B perpd
+to send SIGTERM and SIGCONT signals to
+each
+.BR perpetrate (8)
+process it is currently monitoring.
+After all
+.BR perpetrate (8)
+processes have terminated,
+.B perpd
+itself exits 0.
+.RE
+.\" *** LIMITS ***
+.SH LIMITS
+Each
+.B perpd
+instance can monitor a compile-time maximum number
+of
+.BR perpetrate (8)
+processes, normally 400.
+.\" *** AUTHOR ***
+.SH AUTHOR
+Wayne Marshall, http://b0llix.net/perp/
+.\" *** SEE ALSO ***
+.SH SEE ALSO
+.nh
+.BR chmod (1),
+.BR perp_intro (8),
+.BR perp-setup (8),
+.BR perpboot (8),
+.BR perpctl (8),
+.BR perpetrate (5),
+.BR perpetrate (8),
+.BR perphup (8),
+.BR perpls (8),
+.BR perpok (8),
+.BR perpstat (8),
+.BR sissylog (8),
+.BR tinylog (8)
+.\" EOF (perpd.8)

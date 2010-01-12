@@ -1,0 +1,205 @@
+#!/bin/sh -e
+# perp-setup
+# perp: post-install configurator
+# wcm, 2009.12.23 - 2009.12.23
+# ===
+
+_PROG=$(basename $0)
+
+_BASE=""
+_BASE_DEFAULT=/etc/perp
+
+_INITTAB=/etc/inittab
+_RCLOCAL=/etc/rc.local
+
+_mesg() {
+  echo "${_PROG}($$): $1" >/dev/stderr  
+}
+
+_fail() {
+  _mesg "failure: $1"
+  exit 1
+}
+
+_done() {
+  _mesg "perp configured."
+  exit 0
+}
+
+
+if test $# -gt 0 ; then
+  _BASE=${1}
+elif test "$PERP_BASE" ; then
+  _BASE=$PERP_BASE
+else
+  _BASE=${_BASE_DEFAULT}
+fi
+
+if test 'X' != ${DESTDIR}'X' ; then
+  _mesg "configuring perp in DESTDIR ${DESTDIR} for ${_BASE} ..."
+else
+  _mesg "configuring perp for ${DESTDIR}${_BASE} ..."
+fi
+
+if ! test -d ${DESTDIR}${_BASE} ; then
+  mkdir -p ${DESTDIR}${_BASE} || _fail "unable to create base directory"
+fi
+
+if ! test -d ${DESTDIR}${_BASE}/.boot ; then
+  mkdir -p ${DESTDIR}${_BASE}/.boot || _fail "unable to create .boot directory"
+fi
+
+_mesg "configuring perpboot directory in ${DESTDIR}${_BASE}/.boot ..."
+
+for f in rc.log rc.perp ; do
+  rm -f ${DESTDIR}${_BASE}/.boot/${f}.new
+done
+
+cat - > ${DESTDIR}${_BASE}/.boot/rc.perp.new << "%%"
+#!/bin/sh
+# rc.perp: perpd startup script for perpboot
+# ===
+
+### --- configure ---
+PERP_VAR=/var/run/perp
+PERPD_OPTS="-a6"
+
+
+### --- script ---
+
+## note: perpboot defines PERP_BASE on startup
+
+## clean setup for runtime control files:
+rm -Rf ${PERP_VAR}
+mkdir -p ${PERP_VAR}
+chmod 0700 ${PERP_VAR}
+
+## clean symlink:
+rm -Rf ${PERP_BASE}/.control
+ln -s ${PERP_VAR} ${PERP_BASE}/.control
+
+## exec perpd, options as configured above:
+exec \
+  perpd ${PERPD_OPTS} ${PERP_BASE}
+
+### EOF
+%%
+
+cat - > ${DESTDIR}${_BASE}/.boot/rc.log.new << "%%"
+#!/bin/sh
+# rc.log: perpd logger script for perpboot
+# ===
+
+### --- configure ---
+
+## required:
+LOGDIR=/var/log/perpd
+LOGOPTS="-k 8 -s 100000 -t -z"
+## suggested:
+LOGUSER=tinylog
+
+
+### --- script ---
+
+## initialize user:
+if id ${LOGUSER} >/dev/null 2>/dev/null ; then
+  my_uid=$(id -u ${LOGUSER})
+  my_gid=$(id -g ${LOGUSER})
+else
+  LOGUSER=$(id -un)
+  my_uid=$(id -u ${LOGUSER})
+  my_gid=$(id -g ${LOGUSER})
+fi
+
+## initialize logdir:
+if ! test -d ${LOGDIR} ; then
+  mkdir -p ${LOGDIR}
+fi
+chown -R ${my_uid}:${my_gid} ${LOGDIR}
+chmod 0755 ${LOGDIR}
+
+## exec tinylog with privilege drop:
+exec \
+  runuid ${LOGUSER} \
+      tinylog ${LOGOPTS} ${LOGDIR}
+
+### EOF
+%%
+
+for f in rc.perp rc.log ; do
+  if ! test -f ${DESTDIR}${_BASE}/.boot/${f} ; then
+    mv ${DESTDIR}${_BASE}/.boot/${f}.new ${DESTDIR}${_BASE}/.boot/${f}
+    chmod 0755 ${DESTDIR}${_BASE}/.boot/${f}
+  fi
+done
+
+_mesg "perpboot directory configured"
+
+
+## skip init configuration?
+if test 'X' != ${DESTDIR}'X' ; then
+  _mesg "DESTDIR defined, skipping startup configuration"
+  _done
+fi
+if test 'X' != ${NO_INIT}'X' ; then
+  _mesg "NO_INIT defined, skipping startup configuration"
+  _done
+fi
+
+
+## /etc/inittab installation (sysv):
+if test -f ${_INITTAB} ; then
+  _mesg "configuring perpboot entry for ${_INITTAB} ..."
+  if fgrep perpboot ${_INITTAB} >/dev/null 2>/dev/null ; then
+      _mesg "perpboot entry already found in ${_INITTAB}"
+      _done
+  else
+      rm -f ${_INITTAB}.new 
+      cat ${_INITTAB} - > ${_INITTAB}.new << %%
+
+## perp:
+PB:123456:respawn:@@SBIN@@/perpboot -x ${_BASE}
+
+### EOF
+%%
+      mv ${_INITTAB}.new ${_INITTAB}
+      _mesg "perpboot entry added to ${_INITTAB}"
+      _mesg "*** please run \"kill -HUP 1\" to activate ***"
+      # kill -HUP 1
+      _done
+  fi
+fi
+
+
+## /etc/rc.local installation (bsd):
+if test -f ${_RCLOCAL} ; then
+  _mesg "configuring perpboot entry for ${_RCLOCAL} ..."
+  if fgrep perpboot ${_RCLOCAL} >/dev/null 2>/dev/null ; then
+      _mesg "perpboot entry already found in ${_RCLOCAL}"
+      _done
+  else
+      rm -f ${_RCLOCAL}.new 
+      cat ${_RCLOCAL} - > ${_RCLOCAL}.new << %%
+
+## perp:
+if [ -x @@SBIN@@/perpboot ]; then
+    echo -n ' perpd'
+        ## to modify path within perp runscripts, edit/uncomment:
+        #PATH=/sbin:/bin:/usr/sbin:/usr/bin \\
+        @@SBIN@@/perpboot -d ${_BASE}
+fi
+
+### EOF
+%%
+      mv ${_RCLOCAL}.new ${_RCLOCAL}
+      _mesg "perpboot entry added to ${_RCLOCAL}"
+      _mesg "*** please restart system to activate ***"
+      _done
+  fi
+fi
+
+
+_fail "uh oh, neither ${_INITTAB} nor ${_RCLOCAL} were found on your system!"
+exit 1
+
+### EOF

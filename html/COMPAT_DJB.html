@@ -1,0 +1,379 @@
+<html>
+<!--
+# COMPAT_DJB.html
+# perp: persistent process supervision
+# compare with djb daemontools
+# wcm, 2009.12.24 - 2009.12.29
+# ===
+-->
+<head>
+<title>perp: daemontools compatibility</title>
+</head>
+<body>
+<p>
+The <b>perp</b> system was designed as a replacement and "upgrade"
+for the <b>daemontools</b> package by Daniel J. Bernstein (djb).
+For users already familiar with that package, this document
+describes how perp compares with it.
+</p>
+
+<p>
+The last public release of the daemontools package (version 0.76)
+was dated July 2001.  To the best of my understanding, daemontools
+pioneered the concept of the "supervision" framework.  That is,
+even though <i>/etc/inittab</i> (sys-v) and <i>/etc/ttys</i> (bsd)
+existed and provided some system-specific elements of supervision
+for their respective init(8) systems, daemontools was the first
+package that generalized the principles for usage on any unix
+platform and with any arbitrary service/daemon.
+</p>
+
+<p>
+The implementation of perp differs in many respects from daemontools,
+and the two systems are not directly compatible.  The underlying
+principles are quite similar, however.  And we will later show
+how to easily drop-in any ready-made daemontools service definitions
+into a perp installation.
+</p>
+
+<p>
+The following table correlates the elements of perp with those of
+daemontools:
+</p>
+
+<table border="2">
+<tr>
+<th>ref#</th>
+<th>perp</th>
+<th>daemontools</th>
+<th>comment</th>
+</tr>
+<tr>
+<td>1</td>
+<td><i>/etc/perp</i></td>
+<td><i>/service</i></td>
+<td>base service installation directory</td>
+</tr>
+<td>2</td>
+<td><i>/etc/perp/foo</i></td>
+<td><i>/path/to/foo</i></td>
+<td>definition directory for service <i>foo</i></td>
+</tr>
+<tr>
+<td>3</td>
+<td><i>./foo/rc.main</i></td>
+<td><i>./foo/run</i></td>
+<td>runscript for starting service <i>foo</i></td>
+</tr>
+<tr>
+<td>4</td>
+<td><i>./foo/rc.log</i></td>
+<td><i>./foo/log/run</i></td>
+<td>runscript for logging service <i>foo</i></td>
+</tr>
+<tr>
+<td>5</td>
+<td>chmod +t <i>/etc/perp/foo</i></td>
+<td>ln -s <i>/path/to/foo</i> <i>/service/foo</i></td>
+<td>activation of service <i>foo</i></td>
+</tr>
+<tr>
+<td>6</td>
+<td><i>/etc/perp/.control/foo</br>[-->/var/run/perp/foo]</i></td>
+<td><i>/path/to/foo/supervise</i>,</br>
+    <i>/path/to/foo/log/supervise</i></td>
+<td>runtime control/status files for service <i>foo</i></td>
+</tr>
+<tr>
+<td>7</td>
+<td>perpd</td>
+<td>svscan</td>
+<td>service directory scanner</td>
+</tr>
+<tr>
+<td>7x</td>
+<td>perphup</td>
+<td>n/a</td>
+<td>trigger rescan of service directory</td>
+</tr>
+<tr>
+<td>8</td>
+<td>perpetrate</td>
+<td>supervise</td>
+<td>service supervisor</td>
+</tr>
+<tr>
+<td>9</td>
+<td>perpctl</td>
+<td>svc</td>
+<td>service control interface</td>
+</tr>
+<td>10</td>
+<td>perpstat, perpls</td>
+<td>svstat</td>
+<td>service status reporting</td>
+</tr>
+<td>11</td>
+<td>perpok</td>
+<td>svok</td>
+<td>service check</td>
+</tr>
+<tr>
+<td>12</td>
+<td>perpboot</td>
+<td>svscanboot</td>
+<td>startup utility</td>
+</tr>
+<tr>
+<td>13</td>
+<td>tinylog</td>
+<td>multilog</td>
+<td>stdin logger</td>
+</tr>
+<tr>
+<td>14</td>
+<td>sissylog</td>
+<td>splogger (qmail)</td>
+<td>stdin to syslog</td>
+</tr>
+</table>
+
+<p>
+The most significant difference between perp and daemontools is seen in the organization
+of files and directories defining services.
+</p>
+
+<p>
+A default daemontools installation will be setup to scan <i>/service</i> for
+active services.  The directory <i>/service</i> itself contains a collection
+of symlinks.  A service is considered active if <i>/service</i> contains
+a symlink to its service definition directory located elsewhere on the system.
+</p>
+
+<p>
+The djb creation of <i>/service</i> as a new, non-standard, top-level
+directory in the filesystem caused all sorts of consternation and
+varying degrees of outrage among unix hier(7) purists.  And for
+good reason:  it generally won't do to have developers arbitrarily
+add new top-level directories to the time-tested and well-considered
+filesystem hierarchy already established.
+</p>
+
+<p>In reaction, some
+installers and 3rd-party package systems patched and converted
+<i>/service</i> to <i>/var/service</i>.
+This eliminated the problem of having a non-standard top-level directory.
+Otherwise, the mechanism and purpose of <i>/var/service</i> remains identical
+to <i>/service</i>: it is simply a collection of symlinks which point to
+service definitions elsewhere on the system.  Other than the symlinks,
+nothing else during runtime ever gets written to the service activation directory,
+whether <i>/service</i> or <i>/var/service</i>.
+</p>
+
+<p>
+A better choice for those annoyed by <i>/service</i> would have
+been to setup svscan to use <i>/etc/service</i>.  That is because
+this directory is used only for configuring the svscan daemon.
+The symlinks placed in this directory simply tell svscan which
+services it should activate.  It is purely of configurational
+purpose to svscan, and nothing otherwise is ever written to the directory
+during runtime.  The purpose of <i>/service</i> is way more
+<i>/etc</i> than it is <i>/var</i>.
+</p>
+
+<p>
+Meanwhile, no conventions were ever established for a standard
+location of the service definition directories themselves.  As a result, they
+can be, and are, found anywhere.  For example, service definitions
+for qmail in a "Life with qmail" setup will be found under <i>/var/qmail/supervise</i>.
+On the othe hand, a dnscache definition might be found in <i>/etc/dnscache</i>.
+</p>
+
+<p>
+The location of a service definition directory is actually much
+more significant than the location of <i>/service</i>.  It matters
+because the supervise program actually writes and maintains its
+own runtime control files inside the service definition directory
+itself.  So, on a system that mounts its root filesystem read-only,
+supervise will fail on service definition directories under
+<i>/etc</i>.
+Or, on systems that mount <i>/var</i> no-exec (eg. OpenBSD),
+any daemontools runscripts on <i>/var</i> will also fail.
+</p>
+
+<p>
+It is the nature of the daemontools supervise paradigm to combine the configuration
+aspects of things normally found in <i>/etc</i> with the runtime
+aspects of things normally found in <i>/var/run</i>.  As a
+consequence, many people will always and forever have trouble
+reconciling the distinct file object attributes for each of these
+within a single location.
+</p>
+
+<p>
+The ``best'' location for service definitions would ideally be in
+<i>/etc</i>.  The <i>run</i> scripts are directly analogous to
+the sorts of files found in, say <i>/etc/rc.d</i>.  Unfortunately,
+though, daemontools service definition directories are ``polluted''
+by supervise during runtime.  And while it is possible to define
+symlinks within each service definition to point individual
+<i>supervise</i> directories back out to somewhere on <i>/var</i>,
+the practice was never established and no one ever does it.  It
+is hard enough to get new users to understand the symlink indirection
+of <i>/service</i>.  It is even harder when some installations
+setup <i>/service</i> itself as a symlink.
+</p>
+
+<p>
+For a long time then, and as part of "the djb way", I used to suggest
+a centralized service definition directory in <i>/var/svc.d</i>.
+The use of a standard base directory on <i>/var</i>
+seemed to be the most functional and least problematic way of
+"viewing" the daemontools paradigm.  And as a bonus, centralizing
+all service definition directories provided substantial benefits
+and simpler administration of a daemontools system.
+</p>
+
+<p>
+The perp system tries to address these issues as follows:
+</p>
+
+<ul>
+<li>
+<i>/etc/perp</i> as single standard centralized base directory for all service definitions
+</li>
+<li>
+service definitions activated/deactivated in place; <i>no symlinks!</i>
+</li>
+<li>
+runtime control files maintained in ``shadow'' directory of <i>/etc/perp</i>;
+service definition directories themselves never ``polluted'' during runtime
+</li>
+<li>
+all runscripts for service and logger defined in the same directory;
+no nesting of log service in a sub-directory
+</li>
+<li>
+no complaints for the FHS police
+</li>
+</ul>
+
+<p>
+The result is a system that is generally easier for the administrator to understand,
+install, configure, and administer.
+Everything is in one place.  No chasing down symlinks, no symlink mistakes.
+Service providers can ship and package developers can install standard
+service definitions to a standard location.
+Service definitions can remain pristine, unpolluted, and can be copied and
+redeployed as-is from system to system, without modification or clean-up.
+</p>
+
+
+<p>
+Both perp and daemontools contain additional utilities for use
+in service runscripts.  These utilities are correlated in the
+following table:
+</p>
+
+<table border="2">
+<tr>
+<th>ref#</th>
+<th>runtools</th>
+<th>daemontools</th>
+<th>comment</th>
+</tr>
+<tr>
+<td>#</td>
+<td>runargs</td>
+<td>n/a</td>
+<td>run prog with args from file</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runargv0</td>
+<td>argv0 (ucspi-tcp)</td>
+<td>run prog with alias in 0th arg</td>
+</tr>
+<tr>
+<td>#</td>
+<td>rundetach</td>
+<td>n/a</td>
+<td>run prog in background</td>
+</tr>
+<tr>
+<td>#</td>
+<td>rundeux</td>
+<td>n/a</td>
+<td>run/supervise prog with logger</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runenv</td>
+<td>envdir</td>
+<td>run prog with defined environment</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runenv -U</td>
+<td>envuidgid</td>
+<td>run prog with UID/GID defined in environment</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runfile</td>
+<td>n/a</td>
+<td>run an argv[] specified in a file</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runlimit</td>
+<td>softlimit</td>
+<td>run prog with specific resources</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runlock</td>
+<td>setlock</td>
+<td>run prog with a lockfile</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runpause</td>
+<td>n/a</td>
+<td>run prog after delay</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runsession</td>
+<td>pgrphack</td>
+<td>run prog in a new session/process group</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runuid</td>
+<td>setuidgid</td>
+<td>run prog as specific user</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runtool</td>
+<td>n/a</td>
+<td>multi-purpose runtool</td>
+</tr>
+<tr>
+<td>#</td>
+<td>runtrap</td>
+<td>n/a</td>
+<td>run/supervise prog with signal handling</td>
+</tr>
+<tr>
+<td>#</td>
+<td>n/a</td>
+<td>fghack</td>
+<td>force prog to foreground</td>
+</tr>
+</table>
+
+
+</body>
+</html>

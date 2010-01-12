@@ -1,0 +1,85 @@
+# INSTALL
+# perp: persistent process supervision
+# (includes runtools and libasagna)
+# wcm, 2009.12.23 - 2009.12.28
+# ===
+
+SYNOPSIS
+
+  $ vi conf.mk
+  $ make && make strip
+  $ su
+  # make install
+  # perp-setup /etc/perp
+
+
+DESCRIPTION
+
+The build system and source code are intended to be generic and
+portable.
+
+Using your preferred text editor, open the file "conf.mk" in the
+top-level directory to configure the compiler, the compiler options,
+and the installation directories:
+
+  $ vi conf.mk
+
+As an unprivileged user, build the software with:
+
+  $ make
+
+The system is intended to be make(1) "agnostic", and should build
+correctly with any standard make provided with either BSD or Linux
+systems.
+
+Strip debugging symbols for smaller executables:
+
+  $ make strip
+
+To install the compiled binaries and man pages, gain administrator
+privilege and run:
+
+  $ su
+  # make install
+
+The software is now installed on the system.
+
+
+ACTIVATION
+
+Before activating the software for the first time, take some moments
+to become familiar with its configuration and operation.  In particular,
+skim the manual pages for perp_intro(8), perpd(8), perpetrate(8), and
+perpetrate(5).
+
+It is recommended to use perpboot(8) to start and log the perp
+system.  The perp-setup(8) utility may be used to automatically
+install and configure perpboot(8) into the system's init(8) scripts,
+whether System-V style (/etc/inittab) or BSD style (/etc/rc.local):
+
+  # perp-setup /etc/perp
+
+Review the startup scripts now installed in /etc/perp/.boot and
+the perpboot(8) stanza added to either /etc/inittab or /etc/rc.local.
+
+Activation of the system then depends on the host system.  If
+System-V style (/etc/inittab), just send a SIGHUP to init(8):
+
+  # kill -HUP 1
+
+If BSD-style (/etc/rc.local), you will need to reboot the machine:
+
+  # shutdown -r now
+
+The perp system will then be activated and services may be added to
+/etc/perp at anytime.
+
+
+EXAMPLES
+
+The examples subdirectory in the distribution package contains a small
+collection of ready-made service definitions.  The README file in that
+directory, and with each example service definition, explains its usage
+and installation procedure.
+
+### EOF
