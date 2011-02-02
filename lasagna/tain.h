@@ -1,6 +1,6 @@
 /* tain.h
 ** tain: TAI timestamp with nanosecond precision
-** wcm, 2008.01.08 - 2009.08.06
+** wcm, 2008.01.08 - 2011.01.26
 ** ===
 */
 #ifndef TAIN_H
@@ -26,7 +26,7 @@ struct tain {
 /* object typedef: */
 typedef struct tain tain_t;
 
-/* offset from tai epock to utc (in seconds): */
+/* offset from tai epoch to utc (in seconds): */
 #define TAIN_UTC_OFFSET  4611686018427387914ULL
 
 /* buffer sizes required for packed TAI64N and TAI64 labels: */
@@ -51,7 +51,7 @@ extern tain_t * tain_load(tain_t *t, uint64_t sec, uint32_t nsec);
 ** macro version of tain_load()
 **   note: no return
 */
-#define tain_LOAD(t,s,n) ((t)->sec = (s), (t)->nsec = (n))
+#define tain_LOAD(t,s,n) ((t)->sec = (uint64_t)(s), (t)->nsec = (uint32_t)(n))
 
 /* tain_INIT()
 ** macro for initializing a static tain_t value
@@ -59,7 +59,7 @@ extern tain_t * tain_load(tain_t *t, uint64_t sec, uint32_t nsec);
 ** idiom:
 **   tain_t  t = tain_INIT(sec, nsec);
 */
-#define tain_INIT(s,n) {(s), (n)}
+#define tain_INIT(s,n) {(uint64_t)(s), (uint32_t)(n)}
 
 /* tain_now()
 ** load tai-adjusted gettimeofday() into t
@@ -125,6 +125,18 @@ extern int tain_less(const tain_t *t1, const tain_t *t2);
 ** t == 0 ?
 */
 extern int tain_iszero(const tain_t *t);
+
+/* tain_uptime()
+**   difference between now and when
+**   return seconds
+**
+**   notes:
+**   - think: "when" happened before "now" (now > when)
+**   - but this function does accomodate when greater than now
+**     eg: a reset of system timeclock moves now before when
+**   - if result cast to uint32_t, uptime in seconds to 136 years
+*/
+extern uint64_t tain_uptime(const tain_t *now, const tain_t *when);
 
 /* tain_pack(), tain_unpack()
 ** portable 12 byte representation of tain

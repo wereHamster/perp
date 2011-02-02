@@ -1,0 +1,24 @@
+# CHANGES
+# perp release history and changelog
+# wcm, 2010.02.17 - 2011.02.02
+# ===
+
+perp-2.00 (2011.02.02):
+ * perpd:
+   - coalesces supervisor (formerly perpetrate(8)) into scanner/controller
+   - runs as a single process
+   - all ipc with client applications via single domain socket 
+   - ipc protocol version 2 (see PROTO_V2.txt)
+ * perpetrate:
+   - eliminated perpetrate(8) executable (subsumed by perpd(8))
+   - perpetrate(5) manual page retained for runscript conventions
+ * perpctl:
+   - added options [-A | -X], activate/deactivate service
+ * libasagna:
+   - nuscan.h, improved numeric scanning interface (supercedes nscan.h)
+   - other iterative improvements incorporated from projects hdb and ezcdb
+ 
+perp-0.00 (2010.01.12):
+ - maiden public release
+
+### EOF

@@ -1,5 +1,5 @@
 /* pidlock_set.c
-** wcm, 2008.10.09 - 2009.10.06
+** wcm, 2008.10.09 - 2011.02.01
 ** ===
 */
 
@@ -41,7 +41,7 @@ do_pid(int fd, pid_t pid)
     do{
         e = write(fd, nfmt, n);
     }while((e == -1) && (errno == EINTR));
-    if(e != n){
+    if((e < 0) || ((size_t)e != n)){
         return -1;
     }
 
@@ -51,7 +51,7 @@ do_pid(int fd, pid_t pid)
 
 
 int
-pidlock_set(const char *lockfile, pid_t pid, enum pidlock_wait wait)
+pidlock_set(const char *lockfile, pid_t pid, enum pidlock_wait lockwait)
 {
     int    fd;
     int    in_use = 0;
@@ -62,7 +62,7 @@ pidlock_set(const char *lockfile, pid_t pid, enum pidlock_wait wait)
         return -1;
     }
 
-    e = padlock_exlock(fd, wait);
+    e = padlock_exlock(fd, lockwait);
     if(e == -1){
         if((errno == EACCES) || (errno == EAGAIN)){
             /* lock held by another process, don't unlink it: */

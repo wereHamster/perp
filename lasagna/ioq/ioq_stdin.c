@@ -1,5 +1,5 @@
 /* ioq_stdin.c
-** wcm, 2004.04.21 - 2009.08.12
+** wcm, 2004.04.21 - 2010.11.24
 ** ===
 */
 #include <unistd.h>
@@ -8,7 +8,7 @@
 #include "ioq_std.h"
 
 /* reader for stdin: */
-int ioq_fd0_read(int fd, void *buf, size_t len)
+ssize_t ioq_fd0_read(int fd, void *buf, size_t len)
 {
   /* note: standard djb, flushes stdout before read() on stdin */
   if(ioq_flush(ioq1) == -1)

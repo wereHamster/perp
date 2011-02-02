@@ -1,10 +1,11 @@
 /* pkt_load.c
 ** pkt: tiny packet protocol
-** wcm, 2009.07.29 - 2009.07.29
+** wcm, 2009.07.29 - 2011.01.21
 ** ===
 */
 
 #include <stddef.h>
+#include <stdint.h>
 #include <errno.h>
 
 #include "uchar.h"
@@ -23,7 +24,7 @@ pkt_load(pkt_t K, uchar_t P, uchar_t T, uchar_t *buf, size_t N)
 
   K[0] = P;
   K[1] = T;
-  K[2] = (uchar_t)N;
+  K[2] = (uint8_t)N;
   buf_copy(&K[3], buf, N);
 
   return 0;

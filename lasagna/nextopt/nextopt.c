@@ -1,6 +1,6 @@
 /* nextopt.c
 ** command-line option parser
-** wcm, 2009.11.11 - 2009.11.12
+** wcm, 2009.11.11 - 2010.12.01
 ** ===
 */
 #include <stddef.h>
@@ -22,7 +22,7 @@ struct nextopt {
   /*
   ** private!
   */
-  int           _argc;    /* arg count */
+  size_t        _argc;    /* arg count */
   char * const *_argv;    /* argument list */
   size_t        _ondx;    /* option cursor position */
 }
@@ -42,7 +42,7 @@ nextopt_start(
   nopt->opt_arg  = NULL;
   nopt->opt_list = optlist;
   nopt->arg_ndx  = start;
-  nopt->_argc    = argc;
+  nopt->_argc    = (size_t)argc;
   nopt->_argv    = argv;
   nopt->_ondx    = 1;
 

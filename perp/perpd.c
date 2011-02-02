@@ -1,700 +1,1065 @@
 /* perpd.c
-** perpd: persistent process scanning daemon
-** wcm, 2008.01.03 - 2009.12.09
+** perp: persistent process supervision
+** perpd 2.0: single process scanner/supervisor/controller
+** wcm, 2010.12.28 - 2011.02.02
 ** ===
 */
 
-/* standard library headers: */
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
-/* unix standard headers: */
+/* unix: */
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <grp.h>
 #include <poll.h>
 #include <signal.h>
-#include <time.h>
-#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 
-/* lasagna headers: */
+/* lasanga: */
+#include "buf.h"
 #include "cstr.h"
+#include "domsock.h"
 #include "fd.h"
 #include "nextopt.h"
 #include "nfmt.h"
-#include "nscan.h"
-#include "newenv.h"
-#include "nextopt.h"
-#include "outvec.h"
+#include "nuscan.h"
 #include "pidlock.h"
+#include "pkt.h"
+#include "pollio.h"
 #include "sig.h"
 #include "sigset.h"
 #include "sysstr.h"
 #include "tain.h"
+#include "uchar.h"
 
-/* macros for logging perp daemons to stderr: */
-#include "loggit.h"
-/* common defines for perp system: */
+/* perp: */
 #include "perp_common.h"
+#include "perpd.h"
 
-/* access environment: */
-extern char  **environ;
+/* brief pause on exceptional error (billionths of second): */
+#define EPAUSE  555444321UL
 
-/*
-** logging variables in scope:
-*/
-static const char *progpid = NULL;
-static const char *progname = NULL;
-static const char prog_usage[] = " [-hV] [-a secs] [basedir]";
+/* logging variables in perpd scope: */
+const char  *progname = NULL;
+const char   prog_usage[] = "[-hV] [-a secs] [-g gid] [-m mode] [basedir]";
+const char  *my_pidstr = NULL;
 
-/*
-** configure loggit.h macros:
-*/
-#define LOGGIT_FMT \
-  progname, "[", progpid, "]: "
-
-/*
-** objects:
-*/
-
-/* sv object (for each perpetrate supervisor instance): */
-struct sv {
-   dev_t          dev;
-   ino_t          ino;
-   pid_t          pid;
-   int            cull;
-};
-
-/* perpd object (this perpd instance): */
-struct perpd {
-   const char    *basedir;      /* directory scanning */
-   uint32_t       autoscan;     /* scanning interval (secs) */
-   struct tain    when;         /* my uptime timestamp */
-   int            fdpidlock;    /* fd for pidlock file */
-   sigset_t       sigset;       /* sigset to block/unblock during nanosleep() */
-   int            n;            /* number of sv processes in sv[] */
-   int            max;          /* PERP_MAX */
-   struct sv      sv[PERP_MAX]; /* sv processes */
-};
-
+/* other variables available in perpd scope: */
+/* base directory: */
+const char  *basedir = NULL;
+/* sigset blocking: */
+sigset_t  poll_sigset;
+/* status variables for perpd: */
+pid_t     my_pid;
+tain_t    my_when;
 
 /*
-**  variables in scope:
+** variables in file scope:
 */
-static pid_t   mypid = 0;
-static int     selfpipe[2];
-static int     flagterm = 0;
-static int     flaghup = 0;
-static int     fdmax = 0;
-
+/* options/args: */
+static uint32_t  arg_autoscan = 0;
+static gid_t     arg_gid = (gid_t)-1;
+static mode_t    arg_mode = 0;
+/* signal flags: */
+static int  flag_chld = 0;
+static int  flag_hup = 0;
+static int  flag_term = 0;
+/* exceptional failure on fork(): */
+static int  flag_failing = 0;
+/* perpd termination in progress: */
+static int  flag_terminating = 0;
+/* file descriptors: selfpipe, pidlock, listening socket: */
+static int  selfpipe[2];
+static int  fd_pidlock = -1;
+static int  fd_listen = -1;
+/* service definitions vector: */
+static struct svdef  svdefs[PERP_MAX];
+/* services currently active (in svdefs[]): */
+static int  nservices = 0;
 
 /*
-** declarations in scope:
-*/
-static void    sigtrap(int sig);
-static void    selfpipe_ping(void);
-static void    sv_init(struct sv *sv);
-static void    perpd_init(struct perpd *perpd, const char *basedir,
-                          uint32_t autoscan);
-static void    setup_control(struct perpd *perpd);
-static int     run_child(struct perpd *perpd, char *prog[]);
-static const struct stat *check_sv(char *svdir);
-static void    run_sv(struct perpd *perpd, int i, char *svdir);
-static void    check_children(struct perpd *perpd);
-static void    perpd_scan(struct perpd *perpd);
-static void    main_loop(struct perpd *perpd);
-static void    perpd_shutdown(struct perpd *perpd);
-
-
-/*
-** definitions:
+** declarations in file scope:
 */
 
+/* selfpipe: */
+static void selfpipe_ping(void);
+/* signal handler: */
+static void sig_trap(int sig);
+
+/* startup/initialize control directory: */
+static void perpd_control_init(void);
+
+/* scanner on basedir ("/etc/perp"): */
+static void perpd_scan(void);
+/* scanner helper function: */
+static const struct stat * perpd_svdir_stat(const char *dirname);
+
+/* cull deactivated services: */
+static void perpd_cull(void);
+
+/* waitpid() and process terminated children: */
+static void perpd_waitup(void);
+
+/* poll()-based event loop: */
+static void perpd_mainloop(void);
+
+
+/* selfpipe_ping():
+**   triggered by sig_trap() signal handler
+*/
 static
-void sigtrap(int sig)
+void
+selfpipe_ping(void)
 {
-   switch (sig) {
-   case SIGINT:
-      log_debug("got SIGINT");
-      flagterm = 1;
-      break;
-   case SIGTERM:
-      log_debug("got SIGTERM");
-      flagterm = 1;
-      break;
-   case SIGHUP:
-      log_debug("got SIGHUP");
-      flaghup = 1;
-      break;
-   case SIGCHLD:
-      break;
-   default:
-      break;
-   }
+  int  terrno = errno;
+  int  w;
 
-   selfpipe_ping();
-   return;
-}
-
-
-static
-void selfpipe_ping(void)
-{
-   int            terrno = errno;
-   int            w;
-
-   do {
+  do{
       w = write(selfpipe[1], "!", 1);
-   } while ((w == -1) && (errno == EINTR));
+  }while((w == -1) && (errno == EINTR));
 
-   errno = terrno;
-   return;
+  errno = terrno;
+  return;
 }
 
-
-/* object init methods: */
+/* signal handler: */
 static
-void sv_init(struct sv *sv)
+void
+sig_trap(int sig)
 {
-   sv->dev = 0;
-   sv->ino = 0;
-   sv->pid = 0;
-   sv->cull = 0;
+    switch(sig){
+    case SIGCHLD: ++flag_chld; break;
+    case SIGHUP:  ++flag_hup;  break;
+    case SIGINT:  /* fallthrough: */
+    case SIGTERM: ++flag_term; break;
+    default:      break;
+    }
 
-   return;
+    /* unset signal flags if termination in progress: */
+    if(flag_terminating){
+        flag_term = 0;
+        flag_hup = 0;
+    }
+
+    selfpipe_ping();
+    return;
 }
 
 
-/* perpd_init()
-**   initialize perpd object
-**   setup base directory
-**   block signals
-**   ...
+/* perpd_trigger_scan()
+**   uses selfpipe_ping() to trigger rescan from mainloop
+**   think: "fake_hup"
+**   in perpd scope
+*/
+void
+perpd_trigger_scan(void)
+{
+  if(!flag_terminating){
+      ++flag_hup;
+      selfpipe_ping();
+  }
+
+  return;
+}
+
+
+/* perpd_trigger_fail()
+**   fork() fails: uses selfpipe_ping() to trigger mainloop
+**   in perpd scope
+*/
+void
+perpd_trigger_fail(void)
+{
+  if(!flag_terminating){
+      ++flag_failing;
+      selfpipe_ping();
+  }
+
+  return;
+}
+
+
+/* perpd_lookup():
+**   scan svdefs[] for dev, ino
+**   return:
+**     NULL: not found
+**     non-null: found, pointer to svdef
+*/
+struct svdef *
+perpd_lookup(dev_t dev, ino_t ino)
+{
+  int  i;
+  for(i = 0; i < nservices; ++i){
+      if((svdefs[i].ino == ino) && (svdefs[i].dev == dev)){
+          /* found: */
+          return &svdefs[i];
+      }
+  }
+
+  /* not found: */
+  return NULL;
+}
+
+
+/* perpd_control_init()
+**   setup/initialize perp control directory
+**   abort on fail
+**
+**   notes:
+**     cwd is basedir on entry/exit
 */
 static
-void perpd_init(struct perpd *perpd, const char *basedir, uint32_t autoscan)
+void
+perpd_control_init(void)
 {
-   int            fd;
+  int  fdbase;  
+  int  fd = -1;
 
-   /* initialize assignments: */
-   perpd->basedir = basedir;
-   perpd->autoscan = autoscan;
-   tain_now(&perpd->when);
-   perpd->fdpidlock = -1;
-
-   sigset_fill(&perpd->sigset);
-   perpd->n = 0;
-   perpd->max = (int) PERP_MAX;
-
-   if (chdir(basedir) != 0) {
-      fatal_syserr("failure chdir() to base directory ", basedir);
-   }
-
-   /* block signals: */
-   sigset_block(&perpd->sigset);
-
-   /* redirect stdin: */
-   if ((fd = open("/dev/null", O_RDWR)) == -1) {
-      fatal_syserr("failure on open() for /dev/null");
-   }
-   fd_move(0, fd);
-
-   /* selfpipe: */
-   if (pipe(selfpipe) == -1) {
-      fatal_syserr("failure pipe() for selfpipe");
-   }
-   fd_cloexec(selfpipe[0]);
-   fd_nonblock(selfpipe[0]);
-   fd_cloexec(selfpipe[1]);
-   fd_nonblock(selfpipe[1]);
-
-   /* setup for intentional mode on file creation: */
-   umask(0);
-
-   return;
-}
-
-
-/* setup_control()
-**   the control directory "shadows" the service directory
-**   cwd is base directory on entry/exit
-*/
-static
-void setup_control(struct perpd *perpd)
-{
-   int            fd = -1;
-   int            fdbase;
-
-   /* setup for return to base directory: */
-   if ((fdbase = open(".", O_RDONLY)) == -1) {
+  /* setup for return to base directory: */
+  if((fdbase = open(".", O_RDONLY)) == -1){
       fatal_syserr("failure open() on base directory");
-   }
+  }
 
-   /* initialize .control directory: */
-   if (mkdir(PERP_CONTROL, 0700) == -1) {
-      char           pathbuf[256];
-      int            n;
+  /* setup umask for intentional mode on file creation: */
+  umask(0);
+
+  /* initialize .control directory: */
+  if(mkdir(PERP_CONTROL, 0700) == -1){
+      char pathbuf[256];
+      int  n;
       /* permit configuration using dangling symlink: */
-      if ((n = readlink(PERP_CONTROL, pathbuf, sizeof pathbuf)) != -1) {
-         if (n < (sizeof pathbuf)) {
-            pathbuf[n] = '\0';
-            mkdir(pathbuf, 0700);       /* ignore failure */
-         } else {
-            fatal(111,
-                  "error readlink() on base control directory: symlink name too long");
-         }
+      if((n = readlink(PERP_CONTROL, pathbuf, sizeof pathbuf)) != -1){
+          if(n < (int)(sizeof pathbuf)){
+              pathbuf[n] = '\0';
+              mkdir(pathbuf, 0700); /* ignore failure */
+          } else {
+              errno = ENAMETOOLONG;
+              fatal_syserr("failure readlink() on base control directory");
+          }
       }
       /* ignoring other errors */
-   }
+  }
 
-   if (chdir(PERP_CONTROL) != 0) {
+  if(chdir(PERP_CONTROL) != 0){
       fatal_syserr("failure chdir() to ", PERP_CONTROL);
-   }
+  }
 
-   /* initialize .perpd within control directory: */
-   if (mkdir(PERPD_CONTROL, 0700) != 0) { /* ignore failure: */ ;
-   }
+  /* initialize pidlock (for single server instance): */
+  fd = pidlock_set(PERPD_PIDLOCK, my_pid, PIDLOCK_NOW);
+  if(fd == -1){
+      fatal_syserr("failure on lock file ", PERPD_PIDLOCK);
+  }
+  fd_cloexec(fd);
+  fd_pidlock = fd;
 
-   if (chdir(PERPD_CONTROL) != 0) {
-      fatal_syserr("failure chdir() to ", PERPD_CONTROL,
-                   " control directory");
-   }
+  /* create listening socket and bind: */
+  fd = domsock_create(PERPD_SOCKET, PERPD_SOCKET_MODE);
+  if(fd == -1){
+      fatal_syserr("failure bind() on socket ", PERPD_SOCKET);
+  }
+  if(arg_mode != 0){
+      if(chmod(PERPD_SOCKET, arg_mode) == -1){
+          fatal_syserr("failure chmod() on socket ", PERPD_SOCKET);
+      }
+  }
+  if(arg_gid != (gid_t)-1){
+      if(chown(PERPD_SOCKET, -1, arg_gid) == -1){
+          fatal_syserr("failure chown() on socket ", PERPD_SOCKET);
+      }
+  }
+  if(domsock_listen(fd, PERPD_CONNMAX) == -1){
+      fatal_syserr("failure listen() on socket ", PERPD_SOCKET); 
+  }
+  if(fd_nonblock(fd) == -1){
+      fatal_syserr("failure fcntl() non-blocking on socket ", PERPD_SOCKET);
+  }
+  fd_cloexec(fd);
+  fd_listen = fd;
 
-   /* initialize pidlock (for single server instance): */
-   fd = pidlock_set(PIDLOCK, mypid, PIDLOCK_NOW);
-   if (fd == -1) {
-      fatal_syserr("failure open/lock/write pidlock file ", PIDLOCK);
-   }
-   fd_cloexec(fd);
-   perpd->fdpidlock = fd;
-
-   /* restore cwd: */
-   if (fchdir(fdbase) == -1) {
+  /* restore cwd: */
+  if(fchdir(fdbase) == -1){
       fatal_syserr("failure fchdir() to base directory");
-   }
-   close(fdbase);
+  }
+  close(fdbase);
 
-   return;
+  return;
 }
 
 
-/* run_child()
-**   setup child process and exec() prog:
-**
-**       prog[0]: "perpetrate"
-**       prog[1]: "<dir>"
-**
-**   called after fork()
-**
-**   return:
-**     should only return on error of exec()
+/* perpd_cull()
+**   scan svdefs[] and cull any deactivated services
 */
 static
-int run_child(struct perpd *perpd, char *prog[])
+void
+perpd_cull(void)
 {
-   int            i;
+  int  i = 0;
 
-   /* set PERP_BASE: */
-   if (newenv_set("PERP_BASE", perpd->basedir) == -1) {
-      fatal_syserr("(in child) failure setting environment for ",
-                   prog[0], " ", prog[1]);
-   }
+  while(i < nservices){
+      if(perpd_svdef_cullok(&svdefs[i])){
+          log_info("deactivating service ", svdefs[i].name);
+          perpd_svdef_close(&svdefs[i]);
+          --nservices;
+          svdefs[i] = svdefs[nservices];
+          continue;
+      }
+      ++i;
+  }
 
-   /* close extraneous file descriptors: */
-   for (i = 3; i < fdmax; ++i)
-      close(i);
-
-   /* setsid() to put child in new process group: */
-   setsid();
-
-   /* clear signal handlers from child process: */
-   sig_uncatch(SIGINT);
-   sig_uncatch(SIGTERM);
-   sig_uncatch(SIGCHLD);
-   sig_uncatch(SIGHUP);
-   sig_uncatch(SIGPIPE);
-   sigset_unblock(&perpd->sigset);
-
-   return newenv_run(prog, environ);
+  return;
 }
 
 
-/* check_sv()
-**   check svdir for valid service directory: name, isdir, and sticky
+/* perpd_waitup()
+**   waitpid on sigchld
+**   called by perpd_mainloop()
+**   if service is set for cull and reaches cull state:
+**     - harvest services at cull state
+**
+**   side effects:
+**     any cull harvest will decrement nservices, reorder svdefs[]
+*/
+static
+void
+perpd_waitup(void)
+{
+  struct subsv  *subsv;
+  pid_t          pid;
+  int            wstat;
+  int            which;
+  int            got_cull = 0;
+  int            got_cycle = 0;
+  int            i;
+
+  while((pid = waitpid(-1, &wstat, WNOHANG)) > 0){
+      /* find dead child: */
+      which = -1;
+      for(i = 0; i < nservices; ++i){
+          if(pid == svdefs[i].svpair[SUBSV_MAIN].pid){
+              which = SUBSV_MAIN;
+              break;
+          }else if(pid == svdefs[i].svpair[SUBSV_LOG].pid){
+              which = SUBSV_LOG;
+              break;
+          }
+      }
+      if(which == -1){
+          log_debug("not my child");
+          continue;
+      }
+
+      subsv = &svdefs[i].svpair[which];
+      subsv->pid = 0;
+      subsv->wstat = wstat;
+      /* if terminating from running "once", set want down: */
+      if(subsv->bitflags & SUBSV_FLAG_ISONCE){
+          subsv->bitflags |= SUBSV_FLAG_WANTDOWN;
+      }
+
+      /* check for reset/restart: */
+      if(!(subsv->bitflags & SUBSV_FLAG_ISRESET)){
+          /* subsv exited from start, always run reset: */
+          log_debug("service ", svdefs[i].name, " (",
+                    (which == SUBSV_MAIN) ? "main)" : "log)",
+                    " terminated");
+          perpd_svdef_run(&svdefs[i], which, SVRUN_RESET);
+          continue;
+      }
+      /* else subsv exited from reset; restart if not wantdown: */
+      if(!(subsv->bitflags & SUBSV_FLAG_WANTDOWN)){
+          log_debug("restarting service ", svdefs[i].name, " (",
+                    (which == SUBSV_MAIN) ? "main)" : "log)");
+          perpd_svdef_run(&svdefs[i], which, SVRUN_START);
+          continue;
+      }
+      /* else subsv wantsdown; initiate log termination too? */
+      if((which == SUBSV_MAIN) && (svdefs[i].bitflags & SVDEF_FLAG_HASLOG)){
+          subsv = &svdefs[i].svpair[SUBSV_LOG];
+          if((subsv->bitflags & SUBSV_FLAG_WANTDOWN) && (subsv->pid > 0)){
+              if(!(subsv->bitflags & SUBSV_FLAG_ISRESET)){
+                  /* shutdown logger if not already running reset: */
+                  close(svdefs[i].logpipe[1]);
+                  close(svdefs[i].logpipe[0]);
+                  kill(subsv->pid, SIGTERM);
+              }
+              /* make sure not paused (even if running reset): */
+              kill(subsv->pid, SIGCONT);
+              subsv->bitflags &= ~SUBSV_FLAG_ISPAUSED;
+              continue;
+          }
+      }
+
+      /*
+      **  else:
+      **    - subsv exited from reset
+      **    - wants down
+      **    - and svdef is all done
+      **
+      **  check if set for culling:
+      */
+      if(perpd_svdef_cullok(&svdefs[i])){
+          ++got_cull;
+      }
+      /* check if service wants reactivation: */ 
+      if(svdefs[i].bitflags & SVDEF_FLAG_CYCLE){
+          log_debug("setting up reactivation following deactivation for ", svdefs[i].name);
+          ++got_cycle;
+      }
+  }
+
+  /* cull any deactivated services: */
+  if(got_cull){
+      perpd_cull();
+  }
+
+  if(got_cycle){
+      /* trigger a perpd_scan() to reactivate this service: */
+      log_debug("triggering a perpd_scan() for service reactivation");
+      perpd_trigger_scan();
+  }
+
+  return;
+}
+
+
+
+/* perpd_svdir_stat()
+**   stat dirname for valid service directory: name, isdir, and sticky
 **   called by perpd_scan()
+**
 **   returns:
-**     success: pointer to static struct stat object for svdir
-**     failure: NULL
+**     non-NULL: success
+**       dirname is a valid perp service name
+**       returns pointer to the static struct stat object for dirname
+**
+**     NULL: failure
+**       dirname is not a valid perp service name, or
+**       stat() failure
+**
+**   note:
+**     errno is *not* left set on stat() failure
 */
 static
-const struct stat *check_sv(char *svdir)
+const struct stat *
+perpd_svdir_stat(const char *dirname)
 {
-   /* persistent stat object! */
-   static struct stat st;
+  /* note: maintaining persistent stat object! */
+  static struct stat  st;
 
-   /* ignore: */
-   if (svdir[0] == '.')
+  /* ignore if leading '.': */
+  if(dirname[0] == '.'){
       return NULL;
+  }
 
-   /* get the stat: */
-   if (stat(svdir, &st) == -1) {
-      warn_syserr("failure stat() on ", svdir);
+  /* get the stat: */
+  if(stat(dirname, &st) == -1){
+      warn_syserr("failure stat() on ", dirname);
       /* clear errno: */
       errno = 0;
       return NULL;
-   }
+  }
 
-   /* check stat for directory and sticky bit: */
-   if (!((S_ISDIR(st.st_mode)) && (st.st_mode & S_ISVTX))) {
-      return NULL;
-   }
+  /* check stat for directory and sticky bit: */
+  if(! ((S_ISDIR(st.st_mode)) && (st.st_mode & S_ISVTX))){
+    return NULL;
+  }
 
-   /* okay then: */
-   return (const struct stat *) &st;
-}
-
-
-/* run_sv()
-**   fork()/exec() supervisor for service directory
-*/
-static
-void run_sv(struct perpd *perpd, int i, char *svdir)
-{
-   char          *prog[] = { "perpetrate", svdir, NULL };
-   pid_t          child;
-
-   log_debug("starting supervisor on service directory: ", svdir);
-   child = fork();
-   if (child == -1) {
-      warn_syserr("failure fork() to supervise service ", svdir);
-      return;
-   }
-   if (child == 0) {
-      /* child: */
-      run_child(perpd, prog);
-      fatal_syserr("(in child) failure execvp() on ", prog[0], " ", prog[1]);
-   }
-
-   /* parent: */
-   perpd->sv[i].pid = child;
-   perpd->sv[i].cull = 0;
-
-   return;
-}
-
-
-/* check_children()
-**   waitpid() for any terminated child processes
-*/
-static
-void check_children(struct perpd *perpd)
-{
-   pid_t          p;
-   int            wstat;
-   int            i;
-
-   for (;;) {
-      do {
-         p = waitpid(-1, &wstat, WNOHANG);
-      } while ((p == -1) && (errno == EINTR));
-
-      if (p <= 0) {
-         /* no child or error: */
-         break;
-      }
-
-      /* a perpetrate child has exited, set its pid 0: */
-      for (i = 0; i < perpd->n; ++i) {
-         if (perpd->sv[i].pid == p) {
-            perpd->sv[i].pid = 0;
-            break;
-         }
-      }
-   }
-
-   return;
+  /* okay: */
+  return (const struct stat *)&st;
 }
 
 
 /* perpd_scan()
-**   loop over cwd: add new services; cull old services
-**   (provides the core directory scanning logic)
+**   scan the perp base directory
+**   activate new definitions
+**   deactivate ("cull") deleted definitions
+**
+**   side effects:
+**     activated services: svdefs[] and nservices
+**     harvested for cull: likewise
+**     got_fail activation failure:
+**       - unexpected pipe()/open() failures in perpd_svdef_activate()
+**       - pause and setup rescan with perpd_trigger_scan()
+**     flag_failing:
+**       - set in perpd_svdef_run() called by perpd_svdef_activate()
 */
 static
-void perpd_scan(struct perpd *perpd)
+void
+perpd_scan(void)
 {
-   DIR           *dir;
-   struct dirent *d;
-   char          *svdir;
-   const struct stat *st;
-   int            i;
-   int            terrno;
+  DIR                *dir;
+  struct dirent      *d;
+  const char         *svdir;
+  const struct stat  *st;
+  struct svdef       *svdef;
+  tain_t              epause = tain_INIT(0, EPAUSE);
+  int                 got_fail = 0;
+  int                 got_cull = 0;
+  int                 i, terrno;
 
-   if ((dir = opendir(".")) == NULL) {
+  if((dir = opendir(".")) == NULL){
       warn_syserr("failure opendir() for service scan");
       return;
-   }
+  }
 
-   /* flag all for cull (active services will unflag cull): */
-   for (i = 0; i < perpd->n; ++i) {
-      perpd->sv[i].cull = 1;
-   }
+  /*
+  ** unflag as active all existing services
+  ** (active services will be reflagged during scan)
+  */
+  for(i = 0; i < nservices; ++i){
+      svdefs[i].bitflags &= ~SVDEF_FLAG_ACTIVE;
+  }
 
-   /* reset errno before scanning: */
-   errno = 0;
-   /* scan: */
-   for (;;) {
-      if ((d = readdir(dir)) == NULL) {
-         break;
+  /* reset errno before scanning: */
+  errno = 0;
+  /* scan: */
+  for(;;){
+
+      /* loop terminal (end of directory): */
+      if((d = readdir(dir)) == NULL){
+          break;
       }
 
       svdir = d->d_name;
-      if ((st = check_sv(svdir)) == NULL) {
-         /* skip this dirent: */
-         continue;
+      if((st = perpd_svdir_stat(svdir)) == NULL){
+          /* ignore this dirent: */
+          continue;
       }
 
-      /* scan existing services for index with this dev/ino: */
-      for (i = 0; i < perpd->n; ++i) {
-         if ((perpd->sv[i].ino == st->st_ino) &&
-             (perpd->sv[i].dev == st->st_dev)) {
-            /* keeper: */
-            perpd->sv[i].cull = 0;
-            if (perpd->sv[i].pid == 0) {
-               /* restart supervisor: */
-               run_sv(perpd, i, svdir);
-            }
-            break;
-         }
+      /* otherwise, scan existing services for this dev/ino: */
+      svdef = perpd_lookup(st->st_dev, st->st_ino);
+      if(svdef != NULL){
+          /* keeper, reflag service as active: */
+          perpd_svdef_keep(svdef, svdir);
+          if(svdef->bitflags & SVDEF_FLAG_CULL){
+              /* deactivation in progress but not yet complete:
+              **   - because something is still running
+              **   - set FLAG_CYCLE to reactivate
+              **   - perpd_waitup() will trigger rescan when ready to reactivate
+              */
+              log_debug("setting reactivation flag for ", svdir);
+              svdef->bitflags |= SVDEF_FLAG_CYCLE;
+          }
+          continue;
       }
-
-      /* add new service: */
-      if (i == perpd->n) {
-         if (!(perpd->n < perpd->max)) {
-            log_warning("unable to add new service ", svdir,
-                        ": too many services");
-            continue;
-         }
-         sv_init(&perpd->sv[i]);
-         perpd->sv[i].dev = st->st_dev;
-         perpd->sv[i].ino = st->st_ino;
-         perpd->sv[i].pid = 0;
-         /* start supervisor: */
-         run_sv(perpd, i, svdir);
-         ++perpd->n;
-         log_debug("adding service ", svdir);
+      /* else, activate new service: */
+      if(!(nservices < PERP_MAX)){
+          log_warning("unable to activate new service ", svdir, ": too many services");
+          ++got_fail;
+          continue;
       }
-   }
-   terrno = errno;
-   closedir(dir);
-   errno = terrno;
+      /* activate and first start: */
+      /* explicitly shield errno from perpd_svdef_activate(): */
+      terrno = errno;
+      if(perpd_svdef_activate(&svdefs[nservices], svdir, st) == -1){
+          log_warning("unable to activate new service ", svdir);
+          ++got_fail;
+      } else {
+          /* service activation successful: */
+          svdefs[nservices].bitflags |= SVDEF_FLAG_ACTIVE;
+          ++nservices;
+          log_info("activated new service: ", svdir);
+      }
+      errno = terrno;
+  }
 
-   if (errno) {
+  terrno = errno;
+  closedir(dir);
+  errno = terrno;
+
+  /* note:
+  **   want to assess errno only from readdir()
+  **     -- which shouldn't happen!
+  **   meaning: errno shielded from perpd_svdef_activate()
+  */
+
+  if(errno){
       warn_syserr("failure readdir() while scanning base directory");
-      /* XXX, if readdir() has failed, cull state is unstable! */
+      log_warning("pausing on base directory scanning failure...");
+      tain_pause(&epause, NULL);
+      /* trigger rescan: */
+      perpd_trigger_scan();
+      /* if readdir() failed prematurely, cull state is unstable: */
       return;
-   }
+  }
 
-   /* remove any sv still flagged for cull: */
-   for (i = 0; i < perpd->n; ++i) {
-      if (perpd->sv[i].cull == 1) {
-         if (perpd->sv[i].pid != 0) {
-            kill(perpd->sv[i].pid, SIGTERM);
-            kill(perpd->sv[i].pid, SIGCONT);
-         }
-         --perpd->n;
-         perpd->sv[i] = perpd->sv[perpd->n];
-         log_debug("removing service flagged for cull");
+  /* initiate/check cull on any services not flagged active: */
+  for(i = 0; i < nservices; ++i){
+      if(!(svdefs[i].bitflags & SVDEF_FLAG_ACTIVE)){
+          if(!(svdefs[i].bitflags & SVDEF_FLAG_CULL)){
+              /* initiate cull of service: */
+              if(perpd_svdef_wantcull(&svdefs[i]) == 1){
+                  /* this service is already in cull state: */
+                  ++got_cull;
+              }
+          }else{
+              /* unset any FLAG_CYCLE: */
+              svdefs[i].bitflags &= ~SVDEF_FLAG_CYCLE;
+              /* check if cullable: */
+              if(perpd_svdef_cullok(&svdefs[i])){
+                  /* this service is in cull state: */
+                  ++got_cull;
+              }
+          }
       }
-   }
+  }
 
-   return;
+  /* harvest any services ready for cull (from perpd_svdef_wantcull() above): */
+  if(got_cull){
+      perpd_cull();
+  }
+
+  /* too many services or activation failures in perpd_svdef_activate(): */
+  if(got_fail){
+      log_warning("pausing on service activation failure...");
+      tain_pause(&epause, NULL);
+      /* trigger rescan: */
+      perpd_trigger_scan();
+  }
+
+  return;
 }
 
 
-static
-void main_loop(struct perpd *perpd)
-{
-   struct pollfd  pfd[1];
-   int            poll_interval;
-   char           nbuf[NFMT_SIZE];
-   int            last_count = 0;
-   char           c;
-   int            e;
-
-   /* initialize poll(): */
-   pfd[0].fd = selfpipe[0];
-   pfd[0].events = POLLIN;
-   poll_interval = (perpd->autoscan ? (perpd->autoscan * 1000) : -1);
-
-   /* initial scan: */
-   perpd_scan(perpd);
-
-   for (;;) {
-
-      if (last_count != perpd->n) {
-         log_info("monitoring ", nfmt_uint32(nbuf, perpd->n),
-                  " services ...");
-         last_count = perpd->n;
-      }
-
-      /* poll() while signals unblocked: */
-      sigset_unblock(&perpd->sigset);
-      {
-         do {
-            e = poll(pfd, 1, poll_interval);
-         } while ((e == -1) && (errno == EINTR));
-      }
-      sigset_block(&perpd->sigset);
-
-      if (e == -1) {
-         warn_syserr("failure poll() in main loop");
-         continue;
-      }
-
-      /* consume selfpipe: */
-      while ((read(selfpipe[0], &c, 1)) == 1) {
-         /* empty */ ;
-      }
-
-      /* all done? */
-      if (flagterm)
-         break;
-
-      /* dead children? */
-      check_children(perpd);
-
-      /* rescan: */
-      perpd_scan(perpd);
-   }
-
-   return;
-}
-
-
-/* perpd_shutdown()
-**   terminate existing supervisors
-**   waitpid() for them
+/* perpd_mainloop()
+**
+** The perpd event loop is conceptually simple -- though long-winded
+** in its full elaboration.
+** 
+** It is based on using poll() to multiplex a set of (non-blocking)
+** i/o events.
+** 
+** The events are of three types:
+** 
+**   * signal interrupts (arriving via selfpipe)
+**   * read/write events for connected clients
+**   * new client connections on control socket
+** 
+** The connections are set non-blocking to be sure the perpd server
+** can never be "hung" by a non-responsive or malicious client.  This
+** requirement means it must accomodate the possibility of partial
+** read/write from/to client connections.  Each client connection is
+** set with a small static buffer sufficient to hold a single complete
+** control packet, along with cursors to indicate the current read/write
+** position within the buffer.  The control packet protocol is defined
+** in such a way to allow a completeness check after each read/write.
+** 
+** Additionally, timestamps are applied to each client connection, so that
+** stale connections may be closed and culled prior to each new poll().
+**
+** This version of the function initializes the pollv[] vector to consider
+** only currently active connections on each poll().  The alternative is
+** to poll() on a pollv[] vector that includes all possible PERPD_CONNMAX
+** clients, whether active or inactive.
 */
 static
-void perpd_shutdown(struct perpd *perpd)
+void
+perpd_mainloop(void)
 {
-   int            i;
-   int            e;
+  struct perpd_conn  clients[PERPD_CONNMAX];
+  struct pollfd      pollv[PERPD_CONNMAX + 2];
+  tain_t             now;
+  tain_t             epause = tain_INIT(0, EPAUSE);
+  int                poll_max;
+  int                poll_interval, poll_remain;
+  int                connfd;
+  int                nconns = 0;
+  int                last_nconns = -1;
+  int                last_nservices = -1;
+  int                nready;
+  char               c, nbuf[NFMT_SIZE];
+  int                i;
 
-   log_debug("starting shutdown sequence ...");
-   /* terminate supervisors: */
-   for (i = 0; i < perpd->n; ++i) {
-      if (perpd->sv[i].pid > 0) {
-         kill(perpd->sv[i].pid, SIGTERM);
-         kill(perpd->sv[i].pid, SIGCONT);
+  /* fill pollv[] poll vector: */
+  /* selfpipe: */
+  pollv[0].fd = selfpipe[0];
+  pollv[0].events = POLLIN;
+  /* listening socket: */
+  pollv[1].fd = fd_listen;
+  pollv[1].events = POLLIN;
+
+  /* initialize clients[]: */
+  for(i = 0; i < PERPD_CONNMAX; ++i){
+      perpd_conn_reset(&clients[i]);
+  }
+
+  poll_max = ((int)arg_autoscan) ? ((int)arg_autoscan * 1000) : -1;
+  poll_interval = poll_max;
+  poll_remain = 0;
+
+  /* setup initial scan: */
+  perpd_trigger_scan();
+
+  /* main poll loop: */
+  for(;;){
+
+      /* loop terminal: */
+      if(flag_terminating && (nservices == 0)){
+          log_info("termination complete");
+          break;
       }
-   }
 
-   /* collect them: */
-   /* XXX, make this an option? or don't do this for some signals? */
-   for (i = 0; i < perpd->n; ++i) {
-      do {
-         e = waitpid(perpd->sv[i].pid, NULL, 0);
-      } while ((e == -1) && (errno == EINTR));
-   }
+      /* info logging: */
+      if(last_nservices != nservices){
+          log_info("supervising ",
+                   nfmt_uint32(nbuf, (uint32_t)nservices), " active ",
+                   (nservices == 1) ? "service" : "services");
+          last_nservices = nservices;
+      }
+      if(last_nconns != nconns){
+          log_info("monitoring ",
+                   nfmt_uint32(nbuf, (uint32_t)nconns), " client ",
+                   (nconns == 1) ? "connection" : "connections");
+          last_nconns = nconns;
+      }
 
-   return;
+      /*
+      ** initializations for each poll:
+      */
+
+      /* close stale connections: */
+      tain_now(&now);
+      for(i = 0; i < nconns; ++i){
+          if(clients[i].connfd != -1){
+              perpd_conn_checkstale(&clients[i], &now);
+          }
+      }
+
+      /* cull closed connections: */
+      i = 0;
+      while(i < nconns){
+          if(clients[i].connfd == -1){
+              --nconns;
+              clients[i] = clients[nconns];
+              continue;
+          }
+          ++i;
+      }
+
+      /* setup pollv[]: */       
+      for(i = 0; i < nconns; ++i){
+          pollv[2 + i].fd = clients[i].connfd;
+          switch(clients[i].state){
+          case PERPD_CONN_READING: pollv[2 + i].events = POLLIN; break;
+          case PERPD_CONN_WRITING: pollv[2 + i].events = POLLOUT; break;
+          default: pollv[2 + i].events = 0;
+          }
+      }
+
+      /* set poll_interval for autoscan: */
+      if(arg_autoscan > 0){
+          poll_interval = (poll_remain < 100) ? poll_max : poll_remain;
+      }
+
+      /*
+      ** poll:
+      */
+
+      /* poll() while signals unblocked: */
+      sigset_unblock(&poll_sigset);
+      {
+          /* listening socket is closed during shutdown: */
+          nfds_t  nfds = flag_terminating ? 1 : nconns + 2;
+          do{
+              nready = pollio(pollv, nfds, poll_interval, &poll_remain);
+          }while((nready == -1) && (errno == EINTR));
+      }
+      sigset_block(&poll_sigset);
+
+      /*
+      ** process poll events:
+      */
+
+      /* poll error? */
+      if(nready == -1){
+          warn_syserr("failure poll() in main loop");
+          continue;
+      }
+
+      /* check selfpipe: */
+      if(pollv[0].revents & POLLIN){
+          --nready;
+          while(read(selfpipe[0], &c, 1) == 1){/*empty*/;}
+      }
+
+      /* term: */
+      if(flag_term){
+          log_info("initiating termination...");
+          int got_cull = 0;
+          /* setup global flags for termination in progress
+          ** (disables any further setting of flag_term, flag_hup): */
+          flag_terminating = 1;
+          flag_term = 0;
+          flag_hup = 0;
+          /* disable further scanning: */
+          arg_autoscan = 0;
+          poll_max = -1;
+          poll_interval = poll_max;
+          /* close listening socket: */
+          close(fd_listen);
+          /* dump pending client connections: */
+          for(i = 0; i < nconns; ++i){
+              close(clients[i].connfd);
+          }
+          nconns = 0;
+          /* initiate shutdown on all services: */
+          for(i = 0; i < nservices; ++i){
+              if(perpd_svdef_wantcull(&svdefs[i]) == 1){
+                  ++got_cull;
+              }
+          }
+          if(got_cull){
+              perpd_cull();
+          }
+      }
+
+      /* tend to dead children! */
+      if(flag_chld){
+          flag_chld = 0;
+          perpd_waitup();
+      }
+
+      /* scan: */
+      if(flag_hup || ((arg_autoscan > 0) && (poll_remain < 100))){
+          flag_hup = 0;
+          perpd_scan();
+          poll_interval = poll_max;
+      }
+
+      /* exceptional failure in progress:
+      **   fork() failure during a perp_svdef_run() call
+      **   seek and retry failing svdefs with perpd_svdef_checkfail():
+      */
+      if(flag_failing){
+          if(flag_terminating){
+              /* no mucking about while failing: */
+              log_warning("exceptional failure in progress at termination");
+              log_warning("aborting normal shutdown sequence");
+              die(111);
+          }
+          /* else: */
+          flag_failing = 0;
+          for(i = 0; i < nservices; ++i){
+              perpd_svdef_checkfail(&svdefs[i]);
+          }
+          if(flag_failing){
+              /* still failing! */
+              /* note: implies perpd_trigger_fail() will trigger another loop */
+              log_warning("pausing on persistent fork() failure...");
+              tain_pause(&epause, NULL);
+              /* XXX, ignore clients while failing: */
+              continue;
+          }
+      }
+
+      /* short-circuit if only selfpipe: */
+      if(nready == 0) continue;
+
+      /*
+      ** check client sockets:
+      */
+
+      if(last_nconns != nconns){
+          log_info("currently active client connections: ", nfmt_uint32(nbuf, (uint32_t)nconns));
+      }
+
+      for(i = 0; i < nconns; ++i){
+          if((connfd = clients[i].connfd) == -1){
+              continue;
+          }
+          if(nready == 0) break;
+          if(pollv[2 + i].revents & (POLLERR | POLLHUP | POLLNVAL)){
+              --nready;
+              log_warning("error on client socket");
+              perpd_conn_close(&clients[i]);
+              continue;
+          }else if(pollv[2 + i].revents & POLLIN){
+              --nready;
+              perpd_conn_read(&clients[i]);
+              continue;
+          }else if(pollv[2 + i].revents & POLLOUT){
+              --nready;
+              perpd_conn_write(&clients[i]);
+              continue;
+          }else{
+              /* XXX, what else? */
+          }
+      }/*end check clients*/
+
+      /* short circuit if no more poll events: */
+      if(nready == 0) continue;
+
+      /* check new client connection: */
+      if(pollv[1].revents & POLLIN){
+          --nready;
+          connfd = domsock_accept(fd_listen);
+          if(connfd == -1){
+              warn_syserr("failure accept() on new client connection");
+          }else if(fd_nonblock(connfd) == -1){
+              warn_syserr("failure fd_nonblock() on new client connection");
+              close(connfd);
+          }else if(nconns == PERPD_CONNMAX){
+              log_warning("too many client connections");
+              close(connfd);
+          }else{
+              log_debug("starting new client connection...");
+              perpd_conn_start(&clients[nconns], connfd);
+              ++nconns;
+          }
+      }/*end check connections*/
+
+      if(nready != 0){
+          /* shouldn't happen: */
+          log_debug("uh oh, unhandled poll() events!");
+      }
+
+  }/* end for(;;) main poll loop */
+
+  return;
 }
 
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-   static char    pidbuf[NFMT_SIZE];
-   char           opt;
-   nextopt_t      nopt = nextopt_INIT(argc, argv, ":hVa:");
-   const char    *basedir = NULL;
-   uint32_t       arg_autoscan = 0;
-   const char    *nscan_end;
-   struct perpd   perpd;
+  nextopt_t      nopt = nextopt_INIT(argc, argv, ":hVa:g:m:");
+  char           opt;
+  uint32_t       u;
+  static char    pidbuf[NFMT_SIZE];
+  const char    *z;
+  struct group  *grent = NULL;
+  int            fd;
 
-   /* pid for pidlock and logging: */
-   mypid = getpid();
-   progpid = nfmt_uint32(pidbuf, (uint32_t) mypid);
-   /* progname for logging: */
-   progname = nextopt_progname(&nopt);
-   while ((opt = nextopt(&nopt))) {
-      char           optc[2] = { nopt.opt_got, '\0' };
-      switch (opt) {
-      case 'h':
-         usage();
-         die(0);
-         break;
-      case 'V':
-         version();
-         die(0);
-         break;
-      case 'a':
-         arg_autoscan = nscan_uint32(nopt.opt_arg, &nscan_end);
-         if (*nscan_end != '\0') {
-            fatal_usage("non-numeric argument found for option -", optc, ": ",
-                        arg_autoscan);
+  /* obtain stringified pid (for logging): */
+  my_pid = getpid();
+  my_pidstr = nfmt_uint32(pidbuf, my_pid);
+
+  progname = nextopt_progname(&nopt);
+  while((opt = nextopt(&nopt))){
+     char optc[2] = {nopt.opt_got, '\0'};
+     switch(opt){
+     case 'h': usage(); die(0); break;
+     case 'V': version(); die(0); break;
+     case 'a':
+         z = nuscan_uint32(&u, nopt.opt_arg);
+         if(*z != '\0'){
+             fatal_usage("non-numeric argument found for option -", optc, ": ", nopt.opt_arg);
          }
+         arg_autoscan = u;
          break;
-      case ':':
+     case 'g':
+         if((nopt.opt_arg[0] > '0') && (nopt.opt_arg[0] < '9')){
+         /* gid numeric: */
+             z = nuscan_uint32(&u, nopt.opt_arg);
+             if(*z != '\0'){
+                 fatal_usage("bad format for group id argument found for option -", optc, ": ", nopt.opt_arg);
+             }
+             errno = 0;
+             grent = getgrgid((gid_t)u);
+             if(grent == NULL){
+                 if((errno == 0) || (errno == ENOENT)){
+                     fatal_usage("no group id found for option -", optc, " ", nopt.opt_arg);
+                 }else{
+                     fatal_syserr("failure getgrgid() for option -", optc, " ", nopt.opt_arg);
+                 }
+             }
+         } else {
+         /* gid group name: */
+             errno = 0;
+             grent = getgrnam(nopt.opt_arg);
+             if(grent == NULL){
+                 if((errno == 0) || (errno == ENOENT)){
+                     fatal_usage("no group id found for option -", optc, " ", nopt.opt_arg);
+                 }else{
+                     fatal_syserr("failure getgrnam() for option -", optc, " ", nopt.opt_arg);
+                 }
+             }
+         }
+         arg_gid = grent->gr_gid;
+         break;
+     case 'm':
+         z = nuscan_uint32o(&u, nopt.opt_arg);
+         if(*z != '\0'){
+             fatal_usage("non-numeric/octal argument found for option -", optc, ": ", nopt.opt_arg);
+         }
+         if(u > 0777){
+             fatal_usage("mode argument for option -", optc, " out of range: ", nopt.opt_arg);
+         }
+         arg_mode = (mode_t)u;
+         break;
+     case ':':
          fatal_usage("missing argument for option -", optc);
-         break;
-      case '?':
-         if (nopt.opt_got != '?') {
-            fatal_usage("invalid option -", optc);
+         break; 
+     case '?':
+         if(nopt.opt_got != '?'){
+             fatal_usage("invalid option -", optc);
          }
          /* else fallthrough: */
-      default:
-         die_usage();
-         break;
-      }
-   }
+     default : die_usage(); break;
+     }
+  }
 
-   argc -= nopt.arg_ndx;
-   argv += nopt.arg_ndx;
+  argc -= nopt.arg_ndx;
+  argv += nopt.arg_ndx;
 
-   basedir = argv[0];
-
-   if (!basedir)
+  /* global base directory ("/etc/perp"): */
+  basedir = argv[0];
+  if(!basedir)
       basedir = getenv("PERP_BASE");
-   if (!basedir || (basedir[0] == '\0'))
+  if(!basedir || (basedir[0] == '\0'))
       basedir = PERP_BASE_DEFAULT;
-
-   if (basedir[0] != '/') {
+  if(basedir[0] != '/'){
       fatal_usage("base directory not defined as absolute path: ", basedir);
-   }
+  }
+  if(chdir(basedir) != 0){
+      fatal_syserr("failure chdir() to base directory ", basedir);
+  }
 
-   log_info("starting on ", basedir, " ...");
+  /* block signals: */
+  sigset_fill(&poll_sigset);
+  sigset_block(&poll_sigset);
 
-   /* initialize perpd, block signals, close fds ...: */
-   perpd_init(&perpd, basedir, arg_autoscan);
-   /* initialize control directory and acquire pidlock: */
-   setup_control(&perpd);
+  /* setup signal handlers: */ 
+  sig_catch(SIGCHLD, &sig_trap);
+  sig_catch(SIGHUP,  &sig_trap);
+  sig_catch(SIGINT,  &sig_trap);
+  sig_catch(SIGTERM, &sig_trap);
+  sig_catch(SIGPIPE, &sig_trap);
 
-   /*
-    ** no fatals beyond this point!
-    */
+  /* redirect stdin: */
+  if((fd = open("/dev/null", O_RDWR)) == -1){
+      fatal_syserr("failure on open() for /dev/null");
+  }
+  fd_move(0, fd);
 
-   /* setup signal handlers: */
-   sig_catch(SIGINT, &sigtrap);
-   sig_catch(SIGTERM, &sigtrap);
-   sig_catch(SIGHUP, &sigtrap);
-   sig_catch(SIGCHLD, &sigtrap);
+  /* initialize selfpipe: */
+  if(pipe(selfpipe) == -1){
+      fatal_syserr("failure pipe() for selfpipe");
+  }
+  fd_cloexec(selfpipe[0]); fd_nonblock(selfpipe[0]);
+  fd_cloexec(selfpipe[1]); fd_nonblock(selfpipe[1]);
 
-   /* scan: */
-   main_loop(&perpd);
+  /* initialize control directory (pidlock, socket, etc): */
+  perpd_control_init();
 
-   /* shutdown: */
-   perpd_shutdown(&perpd);
+  /*
+  ** no fatals beyond this point!
+  */
 
-   log_info("terminating normally on ", basedir);
-   return 0;
+  /* timestamp startup: */
+  tain_now(&my_when);
+
+  log_info("starting on ", basedir, " ...");
+  perpd_mainloop();
+
+  die(0);
 }
 
 
-/* eof (perpd.c) */
+/* eof: perpd.c */

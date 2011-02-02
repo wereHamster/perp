@@ -1,13 +1,12 @@
 /* outvec.h
 ** output using writev()
-** wcm, 2008.01.04 - 2009.11.24
+** wcm, 2008.01.04 - 2010.12.01
 ** ===
 */
 #ifndef OUTVEC_H
 #define OUTVEC_H 1
 
 #include <stddef.h>
-#include <stdarg.h>
 #include <sys/uio.h>
 
 /*
@@ -55,6 +54,18 @@ typedef struct outvec outvec_t;
 **
 */
 #define outvec_INIT(fd, vec, max, flushme)  {(fd), (vec), 0, (max), (flushme)}
+
+/* outvec_put()
+**   enter pointer to buffer buf into outvec object
+**   if vec->n iovec buffers have reached vec->max, first flush to vec->fd
+**   (otherwise, this function does not autoflush)
+**
+**   returns:
+**     0 on success
+**    -1 on writev() failure (errno set)
+*/
+extern int outvec_put(struct outvec *vec, const void *buf, size_t len);
+
 
 /* outvec_puts()
 **   enter pointer to string s into outvec object

@@ -1,5 +1,5 @@
 /* ioq_put.c
-** wcm, 2004.04.21 - 2009.08.02
+** wcm, 2004.04.21 - 2010.06.25
 ** ===
 */
 /* stdlib: */
@@ -73,7 +73,7 @@ write_all(int fd, void *buf, size_t to_write, ssize_t (*op)())
       }while((w == -1) && (errno == EINTR));
 
       if(w == -1)  return -1;  /* error! */
-      if(w == 0)   ;           /* XXX no bytes written */
+      if(w == 0){;}            /* XXX no bytes written */
 
       buf += w;
       to_write -= w;

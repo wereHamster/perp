@@ -1,5 +1,5 @@
 /* sissylog.h
-** wcm, 2009.09.29 - 2009.09.29
+** wcm, 2009.09.29 - 2011.01.31
 ** ===
 */
 #ifndef SISSYLOG_H
@@ -7,15 +7,15 @@
 
 #include <errno.h>
 
+/* ioq-based stderr: */
 #include "ioq.h"
 #include "ioq_std.h"
 #include "sysstr.h"
 
 /* release version string: */
 #ifndef SISSYLOG_VERSION
-#define SISSYLOG_VERSION "0.1.0"
+#define SISSYLOG_VERSION "2.00"
 #endif
-
 
 #ifndef LOGLINE_MAX
 #define LOGLINE_MAX  800
@@ -34,7 +34,7 @@
 
 #define usage() \
   {\
-    eputs("usage: ", progname, prog_usage); \
+    eputs("usage: ", progname, " ", prog_usage); \
   }
 
 #define version() \

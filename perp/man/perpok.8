@@ -1,11 +1,11 @@
 .\" perpok.8
-.\" wcm, 2009.11.10 - 2009.12.15
+.\" wcm, 2009.11.10 - 2011.02.01
 .\" ===
-.TH perpok 8 "January 2010" "perp-0.00" "persistent process supervision"
+.TH perpok 8 "February 2011" "perp-2.00" "persistent process supervision"
 .SH NAME
 perpok \- check a
-.BR perpetrate (8)
-supervisor
+.BR perpd (8)
+service
 .SH SYNOPSIS
 .B perpok [\-hV] [\-b
 .I basedir
@@ -15,15 +15,15 @@ supervisor
 .I sv
 .SH DESCRIPTION
 .B perpok
-is used to check a
-.BR perpetrate (8)
-supervisor running for
-.IR sv .
+is used to check that the service
+.I sv
+is actively running under supervision of 
+.BR perpd (8).
 .PP
 The argument
 .I sv
 should be a service definition directory supervised by
-.BR perpetrate (8).
+.BR perpd (8).
 .B perpok
 will look for
 .I sv
@@ -38,10 +38,8 @@ or in the current directory if neither of the previous is given.
 .B perpok
 returns 0 to indicate success if the definition directory
 .I sv
-exists and is active,
-and if an active
-.BR perpetrate (8)
-supervisor is found running it.
+exists and is under the active supervision of
+.BR perpd (8).
 .PP
 The
 .B \-u
@@ -95,9 +93,9 @@ Normally
 checks only that the
 .I sv
 directory is active (exists and is sticky),
-and that an active
-.BR perpetrate (8)
-supervisor process is running on it.
+and that
+.BR perpd (8)
+is actively supervising it.
 This option extends the checks performed by
 .B perpok
 to test that the main service itself is running,
@@ -150,14 +148,13 @@ to require a dependency on another service named ``foo''.
 If foo has not been running for at least 3 seconds,
 the runscript exits immediately.
 The
-.BR perpetrate (8)
+.BR perpd (8)
 supervisor running this service will then continue trying to restart it at one second intervals.
 .PP
 Note that, when using
 .B perpok
-in a normal collection of services running under the
-.BR perpd (8)
-scanner,
+in a normal collection of services running under
+.BR perpd (8),
 PERP_BASE will always be properly predefined in the runscript environment.
 .PP
 .SH EXIT STATUS
@@ -169,7 +166,7 @@ Success.
 The service
 .I sv
 is active and a
-.BR perpetrate (8)
+.BR perpd (8)
 supervisor has been found running for it.
 Additionally,
 if the
@@ -188,7 +185,7 @@ The service directory
 .I sv
 was found not to be active,
 or a
-.BR perpetrate (8)
+.BR perpd (8)
 supervisor was not found running for it,
 or the additional constraints imposed for uptime checking
 with the
@@ -206,7 +203,7 @@ Prints a brief diagnostic message to stderr on exit.
 System error.
 Unexpected failures during system calls, privilege and/or resource problems,
 or configuration errors in the
-.BR perpetrate (8)
+.BR perpd (8)
 system.
 Prints a brief diagnostic message to stderr on exit.
 .SH CAVEATS
@@ -220,7 +217,7 @@ but there is no guarantee that it will continue to run for as long
 as the dependent service requires it.
 .PP
 A collection of services running under
-.BR perpetrate (8)
+.BR perpd (8)
 tends to be reliable,
 so that the use of
 .B perpok
@@ -239,7 +236,6 @@ Wayne Marshall, http://b0llix.net/perp/
 .BR perpctl (8),
 .BR perpd (8),
 .BR perpetrate (5),
-.BR perpetrate (8),
 .BR perphup (8),
 .BR perpls (8),
 .BR perpstat (8),

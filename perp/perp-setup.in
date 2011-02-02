@@ -1,7 +1,7 @@
 #!/bin/sh -e
-# perp-setup
-# perp: post-install configurator
-# wcm, 2009.12.23 - 2009.12.23
+# perp: persistent process supervision
+# perp-setup: one-time, post-install configurator for perp
+# wcm, 2009.12.23 - 2011.01.31
 # ===
 
 _PROG=$(basename $0)
@@ -169,7 +169,6 @@ PB:123456:respawn:@@SBIN@@/perpboot -x ${_BASE}
       _done
   fi
 fi
-
 
 ## /etc/rc.local installation (bsd):
 if test -f ${_RCLOCAL} ; then

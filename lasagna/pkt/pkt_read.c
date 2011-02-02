@@ -1,6 +1,6 @@
 /* pkt_read.c
 ** pkt: tiny packet protocol
-** wcm, 2009.07.29 - 2009.07.29
+** wcm, 2009.07.29 - 2011.01.24
 ** ===
 */
 
@@ -11,36 +11,90 @@
 #include "buf.h"
 #include "pkt.h"
 
-
-int
-pkt_read(int fd, pkt_t K)
+/* pkt_read():
+**   from file descriptor fd, read() into pkt K[offset]
+**   perform successive read() as necessary for K[2]+3 bytes
+**   assumes reading an incoming pkt
+**   checks size field (K[2]) of incoming pkt correlates with bytes read
+**
+**   return
+**    >0 : no error, number bytes read()
+**    -1 : error, errno set (some bytes may have been read)
+**         read() error
+**         EPROTO if read() size mismatch with K[2]
+**
+**   notes:
+**     behavior depends on blocking/non-blocking of fd
+**     if fd is blocking:
+**         any short read() will return error
+**     if fd is non-blocking:
+**         short read() due to EAGAIN will return number of bytes read
+**         in this call; caller should call again with adjusted offset
+**         if the pkt_len(pkt) is incomplete
+**
+*/ 
+ssize_t
+pkt_read(int fd, pkt_t pkt, size_t offset) 
 {
-    ssize_t  r;
-    size_t   n;
+    size_t    n = 0;
+    size_t    to_read = 0;
+    size_t    max = sizeof(pkt_t);
+    ssize_t   r;
 
-    do{
-        r = read(fd, K, sizeof(pkt_t));
-    }while((r == -1) && (errno == EINTR));
+    if(offset > max){
+       errno = EINVAL;
+       return -1;
+    }
+    /* else: */ 
+    max -= offset;
+    n += offset;
 
-    if(r == -1){
-        /* error during read(), errno set */
-        return -1;
+    to_read = (n < PKT_HEADER) ? PKT_HEADER : pkt_len(pkt);
+
+    while(n < to_read){
+
+        do{
+            r = read(fd, &pkt[n], max);
+        }while((r == -1) && (errno == EINTR));
+
+        if(r == -1){
+            if((errno == EAGAIN) || (errno == EWOULDBLOCK)){
+                /* short read on non-blocking fd: */
+                return n - offset;
+            } else {
+                /* error during read(), errno set */
+                return -1;
+            }
+        }
+
+        if(r == 0){
+            /* eof: */
+            return 0;
+        }
+
+        n += r;
+        max -= r;
+
+        to_read = (n < PKT_HEADER) ? PKT_HEADER : pkt_len(pkt);
     }
 
-    if(r < 3){
-        /* must read at least 3 header bytes: */ 
+    /*
+    ** here on:
+    **   eof: if short read (n < to_read), EPROTO
+    **   n > to_read: EPROTO
+    **   n == to_read: ok
+    **
+    ** note: short read (n < to_read) on non-blocking fd filtered in loop
+    */
+
+    if(n != to_read){
         errno = EPROTO;
         return -1;
     }
 
-    n = (size_t)K[2];
-    if(r != (n + 3)){
-        /* length mismatch (protocol error or short read): */ 
-        errno = EPROTO;
-        return -1;
-    }
-
-    return 0;
+    /* success: */
+    return n - offset;
 }
 
-/* eof: pkg_read.c */
+
+/* eof: pkt_read.c */

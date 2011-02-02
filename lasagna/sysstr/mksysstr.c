@@ -1,6 +1,6 @@
 /* mksysstr.c
 ** generate sorted tables for stringified errno and signal numbers
-** wcm, 2008.01.21 - 2008.10.23
+** wcm, 2008.01.21 - 2010.12.01
 ** ===
 */
 
@@ -560,11 +560,11 @@ void
 do_signo(void)
 {
   size_t  signo_items = 0;
-  int     i;
+  size_t  i;
 
   /* sort signo table: */
   signo_items = signo_init();
-  fprintf(stderr, "%s: sorted %d items in signo table\n", progname, signo_items);
+  fprintf(stderr, "%s: sorted %zu items in signo table\n", progname, signo_items);
 
   printf(
       "/* sysstr_signo.c.in\n"
@@ -573,7 +573,7 @@ do_signo(void)
 
   printf(
       "/*\n"
-      "** %d sorted sysno_def entries in signo_defs[] table:\n"
+      "** %zu sorted sysno_def entries in signo_defs[] table:\n"
       "*/\n", signo_items);
 
   printf(
@@ -599,11 +599,11 @@ void
 do_errno(void)
 {
   size_t  errno_items = 0;
-  int     i;
+  size_t  i;
 
   /* sort errno table: */
   errno_items = errno_init(); 
-  fprintf(stderr, "%s: sorted %d items in errno table\n", progname, errno_items);
+  fprintf(stderr, "%s: sorted %zu items in errno table\n", progname, errno_items);
 
   printf(
       "/* sysstr_errno.c.in\n"
@@ -612,7 +612,7 @@ do_errno(void)
 
   printf(
       "/*\n"
-      "** %d sorted sysno_def entries in errno_defs[] table:\n"
+      "** %zu sorted sysno_def entries in errno_defs[] table:\n"
       "*/\n", errno_items);
 
   printf(
@@ -637,7 +637,6 @@ do_errno(void)
 int
 main(int argc, char *argv[])
 {
-
   if(argc < 2){
       fprintf(stderr, "%s: error: requires argument \"errno\" or \"signo\"\n",
               progname);

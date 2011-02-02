@@ -1,10 +1,12 @@
 /* perphup.c
+** perp: persistent process supervision
+** perp 2.0: single process scanner/supervisor/controller
 ** perphup: trigger rescan in perpd
-** wcm, 2009.11.11 - 2009.12.06
+** wcm, 2009.11.11 - 2011.01.24
 ** ===
 */
 
-/* standard library: */
+/* libc: */
 #include <stdlib.h>
 
 /* unix: */
@@ -13,106 +15,103 @@
 #include <signal.h>
 
 /* lasagna: */
+#include "cstr.h"
 #include "nextopt.h"
+#include "nfmt.h"
+#include "outvec.h"
 #include "pidlock.h"
 #include "sysstr.h"
 
 /* perp: */
-#define  EPUTS_DEVOUT  1
-#include "eputs.h"
 #include "perp_common.h"
+#include "perp_stderr.h"
 
+
+/* logging variables in scope: */
 static const char *progname = NULL;
-static const char prog_usage[] = " [-hV] [-q] [basedir]";
+static const char  prog_usage[] = "[-hV] [-q] [basedir]";
+
+/* option variables in scope: */
+/* "quiet", !opq_q == verbose, default is verbose: */
+static int opt_q = 0;
 
 
-#define  report_ok(...) \
-  {\
-      if(verbose){\
-          eputs(progname, ": ",  __VA_ARGS__);\
-      }\
+int
+main(int argc, char *argv[])
+{
+  nextopt_t    nopt = nextopt_INIT(argc, argv, ":hVq");
+  char         opt;
+  const char  *basedir = NULL;
+  char         pathbuf[256];
+  size_t       n;
+  pid_t        lockpid;
+  char         nbuf[NFMT_SIZE];
+
+  progname = nextopt_progname(&nopt);
+  while((opt = nextopt(&nopt))){
+      char optc[2] = {nopt.opt_got, '\0'}; 
+      switch(opt){
+      case 'h': usage(); die(0); break;
+      case 'V': version(); die(0); break;
+      case 'q': ++opt_q; break;
+      case ':':
+          fatal_usage("missing argument for option -", optc);
+          break;
+      case '?':
+          if(nopt.opt_got != '?'){
+              fatal_usage("invalid option -", optc);
+          }
+          /* else fallthrough: */
+      default : die_usage(); break;
+      }
   }
 
+  argc -= nopt.arg_ndx;
+  argv += nopt.arg_ndx;
 
-int main(int argc, char *argv[])
-{
-   char           opt;
-   nextopt_t      nopt = nextopt_INIT(argc, argv, ":hVq");
-   int            verbose = 1;
-   const char    *basedir = NULL;
-   pid_t          lockpid;
+  basedir = *argv;
 
-   progname = nextopt_progname(&nopt);
-   while ((opt = nextopt(&nopt))) {
-      char           optc[2] = { nopt.opt_got, '\0' };
-      switch (opt) {
-      case 'h':
-         usage();
-         die(0);
-         break;
-      case 'V':
-         version();
-         die(0);
-         break;
-      case 'q':
-         verbose = 0;
-         break;
-      case ':':
-         fatal_usage("missing argument for option -", optc);
-         break;
-      case '?':
-         if (nopt.opt_got != '?') {
-            fatal_usage("invalid option -", optc);
-         }
-         /* else fallthrough: */
-      default:
-         die_usage();
-         break;
-      }
-   }
-
-   argc -= nopt.arg_ndx;
-   argv += nopt.arg_ndx;
-
-   basedir = *argv;
-
-   if (!basedir)
+  if(!basedir)
       basedir = getenv("PERP_BASE");
-   if (!basedir || (basedir[0] == '\0'))
+  if(!basedir || (basedir[0] == '\0'))
       basedir = PERP_BASE_DEFAULT;
 
-   if (chdir(basedir) != 0) {
+  if(chdir(basedir) != 0){
       fatal_syserr("failure chdir() to ", basedir);
-   }
+  }
 
-   if (chdir(PERP_CONTROL) == -1) {
-      fatal_syserr("failure chdir() to ", basedir, "/", PERP_CONTROL);
-   }
+  /* get pid from active perpd pidlock: */
+  n = cstr_vlen(basedir, "/", PERP_CONTROL, "/", PERPD_PIDLOCK);
+  if(!(n < sizeof pathbuf)){
+      errno = ENAMETOOLONG;
+      fatal_syserr("failure locating perpd lockfile ",
+                   basedir, "/", PERP_CONTROL, "/", PERPD_SOCKET);
+  }
+  cstr_vcopy(pathbuf, basedir, "/", PERP_CONTROL, "/", PERPD_PIDLOCK);
 
-   if (chdir(PERPD_CONTROL) == -1) {
-      fatal_syserr("failure chdir() to ", basedir, "/", PERP_CONTROL, "/",
-                   PERPD_CONTROL);
-   }
+  lockpid = pidlock_check(pathbuf);
 
-   lockpid = pidlock_check(PIDLOCK);
-   if (lockpid == -1) {
-      fatal_syserr("failure checking lock on ", PIDLOCK);
-   }
-   if (lockpid == 0) {
-      fatal(111, "perpd not running on ", basedir, ": no lock found on ",
-            PIDLOCK);
-   }
+  if(lockpid == -1){
+      fatal_syserr("failure checking lock on ", pathbuf);
+  }
 
-   if (kill(lockpid, SIGHUP) == -1) {
-      fatal_syserr("failure kill() on SIGHUP to perpd");
-   }
+  if(lockpid == 0){
+      fatal(111, "perpd not running on ", basedir, ": no lock active on ", pathbuf);
+  }
+ 
+  if(kill(lockpid, SIGHUP) == -1){
+      fatal_syserr("failure kill() on SIGHUP to perpd pid ",
+                   nfmt_uint32(nbuf, (uint32_t)lockpid),
+                   "running on ", basedir);
+  }
 
-   if (verbose) {
-      report_ok("rescan triggered on ", basedir);
-   }
+  /* success: */
+  if(!opt_q){
+      eputs(progname, ": perpd rescan triggered on ", basedir);
+  }
 
-   return 0;
+  die(0);
 }
 
 
-/* eof (perphup.c) */
+/* eof: perphup.c */

@@ -1,19 +1,19 @@
 .\" perpctl.8
-.\" wcm, 2009.12.01 - 2010.01.01
+.\" wcm, 2009.12.01 - 2011.02.01
 .\" ===
-.TH perpctl 8 "January 2010" "perp-0.00" "persistent process supervision"
+.TH perpctl 8 "February 2011" "perp-2.00" "persistent process supervision"
 .de ZZ
 .  br
 .  ns
 ..
 .SH NAME
 perpctl \- runtime control utility for
-.BR perpetrate (8)
+.BR perpd (8)
 services
 .SH SYNOPSIS
 .B perpctl [-hV] [-b
 .I basedir
-.B ] [-L]
+.B ] [-g] [-L] [-q]
 .I cmd sv
 .B [
 .I sv ...
@@ -23,8 +23,8 @@ services
 sends the command specified in
 .I cmd
 to the
-.BR perpetrate (8)
-control interface for each active service argument
+.BR perpd (8)
+control interface for each service argument
 .IR sv .
 .PP
 The argument
@@ -34,12 +34,41 @@ but only the first letter is considered.
 The available commands include
 (with mnemonic in parentheses):
 .PP
+.B A
+(Activate)
+.RS
+Sets the sticky bit on each
+.I sv
+service directory argument and
+sends SIGHUP to
+.BR perpd (8).
+The effect is to activate each
+.I sv
+service.
+.RE
+.PP
+.B X
+([e]Xit)
+.RS
+Unsets the sticky bit on each
+.I sv
+service directory argument and
+sends SIGHUP to
+.BR perpd (8).
+The effect is to bring down each
+.I sv
+service and remove it
+from the set of services
+.BR perpd (8)
+is monitoring.
+.RE
+.PP
 .B d
 (down)
 .RS
 If the service is running,
 send it a sequence of SIGTERM and SIGCONT signals to bring it down.
-.BR perpetrate (8)
+.BR perpd (8)
 will flag the service as wanting down:
 if the service stops it will not be restarted. 
 .RE
@@ -48,7 +77,7 @@ if the service stops it will not be restarted.
 (up)
 .RS
 If the service is not already running, start it.
-.BR perpetrate (8)
+.BR perpd (8)
 will flag the service as wanting up:
 if the service stops it will be restarted.
 .RE
@@ -57,7 +86,7 @@ if the service stops it will be restarted.
 (once)
 .RS
 If the service is not already running, start it.
-.BR perpetrate (8)
+.BR perpd (8)
 will flag the service to run once:
 if the service stops it will not be restarted.
 .RE
@@ -67,7 +96,7 @@ if the service stops it will not be restarted.
 .RS
 Send the service a SIGSTOP signal.
 Normally this suspends execution of the service.
-.BR perpetrate (8)
+.BR perpd (8)
 will flag the service as paused.
 .RE
 .PP
@@ -76,7 +105,7 @@ will flag the service as paused.
 .RS
 Send the service a SIGCONT signal.
 Normally a paused service will then resume execution.
-.BR perpetrate (8)
+.BR perpd (8)
 will remove a pause flag on the service.
 .RE
 .PP
@@ -109,10 +138,10 @@ SIGALRM, SIGHUP, SIGINT, SIGKILL, SIGTERM, SIGWINCH, SIGUSR1 or SIGUSR2.
 .RE
 .PP
 .B D
-(meta-down)
+(meta-Down)
 .ZZ
 .B U
-(meta-up)
+(meta-Up)
 .RS
 When given in upper-case, the
 .B d
@@ -122,20 +151,12 @@ When given in upper-case, the
 are applied to both the main and log services.
 .RE
 .PP
-.B X
-(meta-exit)
-.RS
-After bringing down both the main and log services,
-the
-.BR perpetrate (8)
-supervisor itself will then exit.
-.RE
-.PP
-The commands above are used for controlling an active service process
-correlating to the ``start'' target of its
+The signal/control commands listed above
+are applied to an active service process
+running from the ``start'' target of its
 .BR perpetrate (5)
 runscript.
-.BR perpetrate (8)
+.BR perpd (8)
 will otherwise ignore any of the commands described above
 if received while a service is resetting,
 except for the commands
@@ -158,6 +179,23 @@ If neither of these is set,
 .B perpctl
 will operate on the current working directory.
 .TP
+.B \-g
+Group.
+Apply the requested command to the process group id (pgid) of each
+.I sv
+service.
+Normally the signal is applied only to the single process id of the service.
+.BR perpd (8)
+runs each main and log process in its own separate process group;
+the
+.B \-g
+option directs
+.BR perpd (8)
+to signal all process running with the pgid of the service.
+May be combined with the
+.B \-L
+option to signal all processes in the process group of the logging service.
+.TP
 .B \-h
 Help.
 Print a brief usage message to stderr and exit.
@@ -166,7 +204,7 @@ Print a brief usage message to stderr and exit.
 Logger.
 Apply the
 .I cmd
-argument to the active logging services found in
+argument to the active logging service found in
 .I sv
 services.
 By default, the
@@ -176,6 +214,18 @@ The
 .B \-L
 option is not allowed when using any of the meta-commands
 .BR D ", " U ", or " X .
+.TP
+.B \-q
+Quiet.
+Normally after successfully applying the
+.I cmd
+to each
+.IR sv ,
+.B perpctl
+reports a brief message to stderr.
+The
+.B \-q
+option may be used to suppress these messages.
 .TP
 .B \-V
 Version.
@@ -229,7 +279,6 @@ Wayne Marshall, http://b0llix.net/perp/
 .BR perpboot (8),
 .BR perpd (8),
 .BR perpetrate (5),
-.BR perpetrate (8),
 .BR perphup (8),
 .BR perpls (8),
 .BR perpok (8),

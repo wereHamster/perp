@@ -1,6 +1,6 @@
 # Makefile
 # makfile for libasagna
-# wcm, 2008.01.04 - 2010.01.07
+# wcm, 2008.01.04 - 2011.02.01
 # ===
 
 include ../conf.mk
@@ -11,28 +11,33 @@ all: libasagna.a
 ## libasagna modules:
 LIB_OBJS=\
  $(BUF_OBJS) \
+ $(CDB_OBJS) \
  $(CSTR_OBJS) \
  $(DEVOUT_OBJS) \
+ $(DOMSOCK_OBJS) \
  $(DYNBUF_OBJS) \
  $(DYNSTR_OBJS) \
  $(DYNSTUF_OBJS) \
  $(EXECVX_OBJS) \
  $(FD_OBJS) \
+ $(HDB_OBJS) \
  $(IOQ_OBJS) \
  $(NEWENV_OBJS) \
  $(NEXTOPT_OBJS) \
  $(NFMT_OBJS) \
- $(NSCAN_OBJS) \
+ $(NUSCAN_OBJS) \
  $(OUTVEC_OBJS) \
  $(PACKET_OBJS) \
  $(PADLOCK_OBJS) \
  $(PIDLOCK_OBJS) \
  $(PKT_OBJS) \
+ $(POLLIO_OBJS) \
  $(RLIMIT_OBJS) \
  $(SIG_OBJS) \
  $(SYSSTR_OBJS) \
  $(TAIN_OBJS) \
  $(TX64_OBJS) \
+ $(UFUNC_OBJS) \
  $(UPAK_OBJS) \
 
 
@@ -71,6 +76,7 @@ buf_rndx.o : buf/buf_rndx.c buf.h
 ##
 CSTR_OBJS=\
  cstr_cat.o \
+ cstr_chop.o \
  cstr_cmp.o \
  cstr_cmpi.o \
  cstr_contains.o \
@@ -80,6 +86,8 @@ CSTR_OBJS=\
  cstr_lcpy.o \
  cstr_len.o \
  cstr_ltrim.o \
+ cstr_match.o \
+ cstr_matchi.o \
  cstr_ncmp.o \
  cstr_pos.o \
  cstr_rpos.o \
@@ -91,6 +99,9 @@ CSTR_OBJS=\
 
 cstr_cat.o : cstr/cstr_cat.c cstr.h
 	$(CC) $(CFLAGS) -c cstr/cstr_cat.c
+
+cstr_chop.o : cstr/cstr_chop.c cstr.h
+	$(CC) $(CFLAGS) -c cstr/cstr_chop.c
 
 cstr_cmp.o : cstr/cstr_cmp.c cstr.h
 	$(CC) $(CFLAGS) -c cstr/cstr_cmp.c
@@ -119,6 +130,12 @@ cstr_len.o : cstr/cstr_len.c cstr.h
 cstr_ltrim.o : cstr/cstr_ltrim.c cstr.h
 	$(CC) $(CFLAGS) -c cstr/cstr_ltrim.c
 
+cstr_match.o : cstr/cstr_match.c cstr.h
+	$(CC) $(CFLAGS) -c cstr/cstr_match.c
+
+cstr_matchi.o : cstr/cstr_matchi.c cstr.h
+	$(CC) $(CFLAGS) -c cstr/cstr_matchi.c
+
 cstr_ncmp.o : cstr/cstr_ncmp.c cstr.h
 	$(CC) $(CFLAGS) -c cstr/cstr_ncmp.c
 
@@ -143,6 +160,91 @@ cstr_vcopy_.o : cstr/cstr_vcopy_.c cstr.h
 cstr_vlen_.o : cstr/cstr_vlen_.c cstr.h
 	$(CC) $(CFLAGS) -c cstr/cstr_vlen_.c
 
+##
+## cdb:
+##
+CDB_OBJS=\
+  cdb_find.o \
+  cdb_cc.o \
+  cdb_clear.o \
+  cdb_close.o \
+  cdb_distance.o \
+  cdb_dynget.o \
+  cdb_dynread.o \
+  cdb_get.o \
+  cdb_hashpart.o \
+  cdb_init.o \
+  cdb_open.o \
+  cdb_read.o \
+  cdb_seq.o \
+  cdbmk_add.o \
+  cdbmk_addioq.o \
+  cdbmk_addrec.o \
+  cdbmk_clear.o \
+  cdbmk_finish.o \
+  cdbmk_init.o \
+  cdbmk__update.o \
+
+cdb_find.o : cdb/cdb_find.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_find.c
+
+cdb_cc.o : cdb/cdb_cc.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_cc.c
+
+cdb_clear.o : cdb/cdb_clear.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_clear.c
+
+cdb_close.o : cdb/cdb_close.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_close.c
+
+cdb_distance.o : cdb/cdb_distance.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_distance.c
+
+cdb_dynget.o : cdb/cdb_dynget.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_dynget.c
+
+cdb_dynread.o : cdb/cdb_dynread.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_dynread.c
+
+cdb_get.o : cdb/cdb_get.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_get.c
+
+cdb_hashpart.o : cdb/cdb_hashpart.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_hashpart.c
+ 
+cdb_init.o : cdb/cdb_init.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_init.c
+
+cdb_open.o : cdb/cdb_open.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_open.c
+
+cdb_read.o : cdb/cdb_read.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_read.c
+
+cdb_seq.o : cdb/cdb_seq.c cdb.h
+	$(CC) $(CFLAGS) -c cdb/cdb_seq.c
+
+cdbmk_add.o : cdb/cdbmk_add.c cdb.h cdbmk.h
+	$(CC) $(CFLAGS) -c cdb/cdbmk_add.c
+
+cdbmk_addioq.o : cdb/cdbmk_addioq.c cdb.h cdbmk.h
+	$(CC) $(CFLAGS) -c cdb/cdbmk_addioq.c
+
+cdbmk_addrec.o : cdb/cdbmk_addrec.c cdb.h cdbmk.h
+	$(CC) $(CFLAGS) -c cdb/cdbmk_addrec.c
+
+cdbmk_clear.o : cdb/cdbmk_clear.c cdb.h cdbmk.h
+	$(CC) $(CFLAGS) -c cdb/cdbmk_clear.c
+
+cdbmk_finish.o : cdb/cdbmk_finish.c cdb.h cdbmk.h
+	$(CC) $(CFLAGS) -c cdb/cdbmk_finish.c
+
+cdbmk_init.o : cdb/cdbmk_init.c cdb.h cdbmk.h
+	$(CC) $(CFLAGS) -c cdb/cdbmk_init.c
+
+cdbmk__update.o : cdb/cdbmk__update.c cdb.h cdbmk.h
+	$(CC) $(CFLAGS) -c cdb/cdbmk__update.c
+
 
 ##
 ## devout:
@@ -152,6 +254,28 @@ DEVOUT_OBJS=\
 
 devout.o : devout/devout.c devout.h
 	$(CC) $(CFLAGS) -c devout/devout.c
+
+
+##
+## domsock:
+##
+DOMSOCK_OBJS=\
+  domsock_accept.o \
+  domsock_close.o \
+  domsock_connect.o \
+  domsock_create.o \
+
+domsock_accept.o : domsock/domsock_accept.c domsock.h
+	$(CC) $(CFLAGS) -c domsock/domsock_accept.c
+
+domsock_close.o : domsock/domsock_close.c domsock.h
+	$(CC) $(CFLAGS) -c domsock/domsock_close.c
+
+domsock_connect.o : domsock/domsock_connect.c domsock.h
+	$(CC) $(CFLAGS) -c domsock/domsock_connect.c
+
+domsock_create.o : domsock/domsock_create.c domsock.h
+	$(CC) $(CFLAGS) -c domsock/domsock_create.c
 
 
 ##
@@ -201,6 +325,7 @@ dynbuf_put.o : dynbuf/dynbuf_put.c dynbuf.h
 ##
 DYNSTR_OBJS=\
  dynstr.o \
+ dynstr_chop.o \
  dynstr_clear.o \
  dynstr_copy.o \
  dynstr_copys.o \
@@ -218,6 +343,9 @@ DYNSTR_OBJS=\
 
 dynstr.o : dynstr/dynstr.c dynstr.h
 	$(CC) $(CFLAGS) -c dynstr/dynstr.c
+
+dynstr_chop.o : dynstr/dynstr_chop.c dynstr.h
+	$(CC) $(CFLAGS) -c dynstr/dynstr_chop.c
 
 dynstr_clear.o : dynstr/dynstr_clear.c dynstr.h
 	$(CC) $(CFLAGS) -c dynstr/dynstr_clear.c
@@ -377,6 +505,193 @@ fd_nonblock.o : fd/fd_nonblock.c fd.h
 
 
 ##
+## hdb:
+##
+HDB_OBJS=\
+  hdb_find.o \
+  hdb_cc.o \
+  hdb_clear.o \
+  hdb_close.o \
+  hdb_distance.o \
+  hdb_dynget.o \
+  hdb_dynread.o \
+  hdb_get.o \
+  hdb_hashpart.o \
+  hdb_init.o \
+  hdb_open.o \
+  hdb_read.o \
+  hdb_seq.o \
+  hdbmk_add.o \
+  hdbmk_addioq.o \
+  hdbmk_addrec.o \
+  hdbmk_clear.o \
+  hdbmk_finish.o \
+  hdbmk_start.o \
+  hdbmk__update.o \
+
+hdb_find.o : hdb/hdb_find.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_find.c
+
+hdb_cc.o : hdb/hdb_cc.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_cc.c
+
+hdb_clear.o : hdb/hdb_clear.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_clear.c
+
+hdb_close.o : hdb/hdb_close.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_close.c
+
+hdb_distance.o : hdb/hdb_distance.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_distance.c
+
+hdb_dynget.o : hdb/hdb_dynget.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_dynget.c
+
+hdb_dynread.o : hdb/hdb_dynread.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_dynread.c
+
+hdb_get.o : hdb/hdb_get.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_get.c
+
+hdb_hashpart.o : hdb/hdb_hashpart.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_hashpart.c
+ 
+hdb_init.o : hdb/hdb_init.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_init.c
+
+hdb_open.o : hdb/hdb_open.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_open.c
+
+hdb_read.o : hdb/hdb_read.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_read.c
+
+hdb_seq.o : hdb/hdb_seq.c hdb.h
+	$(CC) $(CFLAGS) -c hdb/hdb_seq.c
+
+hdbmk_add.o : hdb/hdbmk_add.c hdb.h hdbmk.h
+	$(CC) $(CFLAGS) -c hdb/hdbmk_add.c
+
+hdbmk_addioq.o : hdb/hdbmk_addioq.c hdb.h hdbmk.h
+	$(CC) $(CFLAGS) -c hdb/hdbmk_addioq.c
+
+hdbmk_addrec.o : hdb/hdbmk_addrec.c hdb.h hdbmk.h
+	$(CC) $(CFLAGS) -c hdb/hdbmk_addrec.c
+
+hdbmk_clear.o : hdb/hdbmk_clear.c hdb.h hdbmk.h
+	$(CC) $(CFLAGS) -c hdb/hdbmk_clear.c
+
+hdbmk_finish.o : hdb/hdbmk_finish.c hdb.h hdbmk.h
+	$(CC) $(CFLAGS) -c hdb/hdbmk_finish.c
+
+hdbmk_start.o : hdb/hdbmk_start.c hdb.h hdbmk.h
+	$(CC) $(CFLAGS) -c hdb/hdbmk_start.c
+
+hdbmk__update.o : hdb/hdbmk__update.c hdb.h hdbmk.h
+	$(CC) $(CFLAGS) -c hdb/hdbmk__update.c
+
+
+##
+## hfunc:
+##
+HFUNC_OBJS=\
+  hfunc_djba.o \
+  hfunc_djbm.o \
+  hfunc_djbx.o \
+  hfunc_elf1.o \
+  hfunc_fnva.o \
+  hfunc_fnvm.o \
+  hfunc_ghfa.o \
+  hfunc_ghfm.o \
+  hfunc_ghfx.o \
+  hfunc_jsw1.o \
+  hfunc_kp37.o \
+  hfunc_kr31.o \
+  hfunc_kx17.o \
+  hfunc_murm.o \
+  hfunc_oat1.o \
+  hfunc_p50a.o \
+  hfunc_pjw1.o \
+  hfunc_rsuh.o \
+  hfunc_rot1.o \
+  hfunc_rotm.o \
+  hfunc_sax1.o \
+  hfunc_sdbm.o \
+  hfunc_sfh1.o \
+  hfunc_postmix32.o \
+
+hfunc_djba.o : hfunc/hfunc_djba.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_djba.c
+
+hfunc_djbm.o : hfunc/hfunc_djbm.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_djbm.c
+
+hfunc_djbx.o : hfunc/hfunc_djbx.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_djbx.c
+
+hfunc_elf1.o : hfunc/hfunc_elf1.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_elf1.c
+
+hfunc_fnva.o : hfunc/hfunc_fnva.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_fnva.c
+
+hfunc_fnvm.o : hfunc/hfunc_fnvm.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_fnvm.c
+
+hfunc_ghfa.o : hfunc/hfunc_ghfa.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_ghfa.c
+
+hfunc_ghfm.o : hfunc/hfunc_ghfm.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_ghfm.c
+
+hfunc_ghfx.o : hfunc/hfunc_ghfx.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_ghfx.c
+
+hfunc_kp37.o : hfunc/hfunc_kp37.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_kp37.c
+
+hfunc_kr31.o : hfunc/hfunc_kr31.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_kr31.c
+
+hfunc_kx17.o : hfunc/hfunc_kx17.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_kx17.c
+
+hfunc_murm.o : hfunc/hfunc_murm.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_murm.c
+
+hfunc_jsw1.o : hfunc/hfunc_jsw1.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_jsw1.c
+
+hfunc_oat1.o : hfunc/hfunc_oat1.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_oat1.c
+
+hfunc_p50a.o : hfunc/hfunc_p50a.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_p50a.c
+
+hfunc_pjw1.o : hfunc/hfunc_pjw1.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_pjw1.c
+
+hfunc_rot1.o : hfunc/hfunc_rot1.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_rot1.c
+
+hfunc_rotm.o : hfunc/hfunc_rotm.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_rotm.c
+
+hfunc_rsuh.o : hfunc/hfunc_rsuh.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_rsuh.c
+
+hfunc_sax1.o : hfunc/hfunc_sax1.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_sax1.c
+
+hfunc_sdbm.o : hfunc/hfunc_sdbm.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_sdbm.c
+
+hfunc_sfh1.o : hfunc/hfunc_sfh1.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_sfh1.c
+
+hfunc_postmix32.o : hfunc/hfunc_postmix32.c hfunc.h
+	$(CC) $(CFLAGS) -c hfunc/hfunc_postmix32.c
+
+##
 ## ioq:
 ##
 IOQ_OBJS=\
@@ -445,45 +760,131 @@ nextopt_progname.o : nextopt/nextopt_progname.c nextopt.h
 ##
 NFMT_OBJS=\
  nfmt_uint32.o \
+ nfmt_uint32_pad.o \
+ nfmt_uint32_pad_.o \
  nfmt_uint32_pad0.o \
+ nfmt_uint32_pad0_.o \
+ nfmt_uint32o.o \
+ nfmt_uint32o_pad0.o \
+ nfmt_uint32o_pad0_.o \
+ nfmt_uint32x.o \
+ nfmt_uint32x_pad.o \
+ nfmt_uint32x_pad_.o \
+ nfmt_uint32x_pad0.o \
+ nfmt_uint32x_pad0_.o \
  nfmt_uint64.o \
+ nfmt_uint64_pad.o \
+ nfmt_uint64_pad_.o \
  nfmt_uint64_pad0.o \
+ nfmt_uint64_pad0_.o \
 
 nfmt_uint32.o : nfmt/nfmt_uint32.c nfmt.h
 	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32.c
 
+nfmt_uint32_pad.o : nfmt/nfmt_uint32_pad.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32_pad.c
+
+nfmt_uint32_pad_.o : nfmt/nfmt_uint32_pad_.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32_pad_.c
+
 nfmt_uint32_pad0.o : nfmt/nfmt_uint32_pad0.c nfmt.h
 	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32_pad0.c
+
+nfmt_uint32_pad0_.o : nfmt/nfmt_uint32_pad0_.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32_pad0_.c
+
+nfmt_uint32o.o : nfmt/nfmt_uint32o.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32o.c
+
+nfmt_uint32x.o : nfmt/nfmt_uint32x.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32x.c
+
+nfmt_uint32o_pad0.o : nfmt/nfmt_uint32o_pad0.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32o_pad0.c
+
+nfmt_uint32o_pad0_.o : nfmt/nfmt_uint32o_pad0_.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32o_pad0_.c
+
+nfmt_uint32x_pad.o : nfmt/nfmt_uint32x_pad.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32x_pad.c
+
+nfmt_uint32x_pad_.o : nfmt/nfmt_uint32x_pad_.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32x_pad_.c
+
+nfmt_uint32x_pad0.o : nfmt/nfmt_uint32x_pad0.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32x_pad0.c
+
+nfmt_uint32x_pad0_.o : nfmt/nfmt_uint32x_pad0_.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint32x_pad0_.c
 
 nfmt_uint64.o : nfmt/nfmt_uint64.c nfmt.h
 	$(CC) $(CFLAGS) -c nfmt/nfmt_uint64.c
 
+nfmt_uint64_pad.o : nfmt/nfmt_uint64_pad.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint64_pad.c
+
+nfmt_uint64_pad_.o : nfmt/nfmt_uint64_pad_.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint64_pad_.c
+
 nfmt_uint64_pad0.o : nfmt/nfmt_uint64_pad0.c nfmt.h
 	$(CC) $(CFLAGS) -c nfmt/nfmt_uint64_pad0.c
 
+nfmt_uint64_pad0_.o : nfmt/nfmt_uint64_pad0_.c nfmt.h
+	$(CC) $(CFLAGS) -c nfmt/nfmt_uint64_pad0_.c
+
 
 ##
-## nscan:
+## nuscan:
 ##
-NSCAN_OBJS=\
- nscan_uint32.o \
- nscan_uint32o.o \
+NUSCAN_OBJS=\
+ nuscan_uint32.o \
+ nuscan_uint32o.o \
  
-nscan_uint32.o : nscan/nscan_uint32.c nscan.h
-	$(CC) $(CFLAGS) -c nscan/nscan_uint32.c
+nuscan_uint32.o : nuscan/nuscan_uint32.c nuscan.h
+	$(CC) $(CFLAGS) -c nuscan/nuscan_uint32.c
 
-nscan_uint32o.o : nscan/nscan_uint32o.c nscan.h
-	$(CC) $(CFLAGS) -c nscan/nscan_uint32o.c
+nuscan_uint32o.o : nuscan/nuscan_uint32o.c nuscan.h
+	$(CC) $(CFLAGS) -c nuscan/nuscan_uint32o.c
 
 
 ##
 ## outvec:
 ##
 OUTVEC_OBJS=\
- outvec.o \
+ outvec_STDERR.o \
+ outvec_STDOUT.o \
+ outvec_flush.o \
+ outvec_put.o \
+ outvec_puts.o \
+ outvec_vputs_.o \
 
-outvec.o : outvec/outvec.c outvec.h
-	$(CC) $(CFLAGS) -c outvec/outvec.c
+## special builds for outvec:
+## build generator for outvec_STDOUT.h:
+outvec/mk_outvec : outvec/mk_outvec.c
+	$(CC) $(CFLAGS) -o $@ outvec/mk_outvec.c
+
+## generate outvec_STDOUT.h:
+outvec/outvec_STDOUT.h : outvec/mk_outvec
+	./outvec/mk_outvec > outvec/outvec_STDOUT.h
+
+## outvec:
+outvec_STDERR.o : outvec/outvec_STDERR.c outvec.h
+	$(CC) $(CFLAGS) -c outvec/outvec_STDERR.c
+
+outvec_STDOUT.o : outvec/outvec_STDOUT.c outvec/outvec_STDOUT.h outvec.h
+	$(CC) $(CFLAGS) -c outvec/outvec_STDOUT.c
+
+outvec_flush.o : outvec/outvec_flush.c outvec.h
+	$(CC) $(CFLAGS) -c outvec/outvec_flush.c
+
+outvec_put.o : outvec/outvec_put.c outvec.h
+	$(CC) $(CFLAGS) -c outvec/outvec_put.c
+
+outvec_puts.o : outvec/outvec_puts.c outvec.h
+	$(CC) $(CFLAGS) -c outvec/outvec_puts.c
+
+outvec_vputs_.o : outvec/outvec_vputs_.c outvec.h
+	$(CC) $(CFLAGS) -c outvec/outvec_vputs_.c
 
 
 ##
@@ -557,7 +958,6 @@ pidlock_set.o : pidlock/pidlock_set.c pidlock.h
 	$(CC) $(CFLAGS) -c pidlock/pidlock_set.c
 
 
-
 ##
 ## pkt:
 ##
@@ -574,6 +974,17 @@ pkt_read.o : pkt/pkt_read.c pkt.h
 
 pkt_write.o : pkt/pkt_write.c pkt.h
 	$(CC) $(CFLAGS) -c pkt/pkt_write.c
+
+
+##
+## pollio:
+##
+POLLIO_OBJS=\
+  pollio.o \
+
+pollio.o : pollio/pollio.c pollio.h
+	$(CC) $(CFLAGS) -c pollio/pollio.c
+
 
 ##
 ## rlimit:
@@ -681,6 +1092,7 @@ TAIN_OBJS=\
  tain_plus.o \
  tain_tai_pack.o \
  tain_tai_unpack.o \
+ tain_uptime.o \
  tain_to_float.o \
  tain_to_msecs.o \
  tain_to_utc.o \
@@ -738,6 +1150,9 @@ tain_to_msecs.o : tain/tain_to_msecs.c tain.h
 tain_to_utc.o : tain/tain_to_utc.c tain.h
 	$(CC) $(CFLAGS) -c tain/tain_to_utc.c
 
+tain_uptime.o : tain/tain_uptime.c tain.h
+	$(CC) $(CFLAGS) -c tain/tain_uptime.c
+
 tain_unpack.o : tain/tain_unpack.c tain.h
 	$(CC) $(CFLAGS) -c tain/tain_unpack.c
 
@@ -757,27 +1172,61 @@ base64_vec.o : tx64/base64_vec.c tx64.h
 tx64_encode.o : tx64/tx64_encode.c tx64.h
 	$(CC) $(CFLAGS) -c tx64/tx64_encode.c
 
+
+##
+## ufunc:
+##
+UFUNC_OBJS=\
+ ufunc_u32add.o \
+
+ufunc_u32add.o : ufunc/ufunc_u32add.c ufunc.h
+	$(CC) $(CFLAGS) -c ufunc/ufunc_u32add.c
+
  
 ##
 ## upak:
 ##
 UPAK_OBJS=\
- upak.o \
- upak16.o \
- upak32.o \
- upak64.o \
+ upak_pack.o \
+ upak_unpack.o \
+ upak16_pack.o \
+ upak16_unpack.o \
+ upak24_pack.o \
+ upak24_unpack.o \
+ upak32_pack.o \
+ upak32_unpack.o \
+ upak64_pack.o \
+ upak64_unpack.o \
 
-upak.o : upak/upak.c upak.h
-	$(CC) $(CFLAGS) -c upak/upak.c
+upak_pack.o : upak/upak_pack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak_pack.c
 
-upak16.o : upak/upak16.c upak.h
-	$(CC) $(CFLAGS) -c upak/upak16.c
+upak_unpack.o : upak/upak_unpack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak_unpack.c
 
-upak32.o : upak/upak32.c upak.h
-	$(CC) $(CFLAGS) -c upak/upak32.c
+upak16_pack.o : upak/upak16_pack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak16_pack.c
 
-upak64.o : upak/upak64.c upak.h
-	$(CC) $(CFLAGS) -c upak/upak64.c
+upak16_unpack.o : upak/upak16_unpack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak16_unpack.c
+
+upak24_pack.o : upak/upak24_pack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak24_pack.c
+
+upak24_unpack.o : upak/upak24_unpack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak24_unpack.c
+
+upak32_pack.o : upak/upak32_pack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak32_pack.c
+
+upak32_unpack.o : upak/upak32_unpack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak32_unpack.c
+
+upak64_pack.o : upak/upak64_pack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak64_pack.c
+
+upak64_unpack.o : upak/upak64_unpack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak64_unpack.c
 
 
 ## libasagna:

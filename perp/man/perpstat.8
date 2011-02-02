@@ -1,10 +1,10 @@
 .\" perpstat.8
-.\" wcm, 2009.11.25 - 2009.12.15
+.\" wcm, 2009.11.25 - 2011.02.01
 .\" ===
-.TH perpstat 8 "January 2010" "perp-0.00" "persistent process supervision"
+.TH perpstat 8 "February 2011" "perp-2.00" "persistent process supervision"
 .SH NAME
 perpstat \- display current status of
-.BR perpetrate (8)
+.BR perpd (8)
 services
 .SH SYNOPSIS
 .B perpstat [\-hV] [\-b
@@ -18,13 +18,13 @@ services
 is used to report the current service status of each
 .I sv
 argument monitored by an active
-.BR perpetrate (8)
+.BR perpd (8)
 supervisor.
 .PP
 Each argument
 .I sv
 should be a service definition directory running under the supervision of
-.BR perpetrate (8).
+.BR perpd (8).
 .B perpstat
 will look for
 .I sv
@@ -42,11 +42,11 @@ For each argument
 .I sv
 found in the base directory,
 .B perpstat
-looks for an active
-.BR perpetrate (8)
-supervisor and queries its runtime status.
+queries the
+.BR perpd (8)
+supervisor for its runtime status.
 It then prints information regarding the
-.BR perpetrate (8)
+.BR perpd (8)
 supervisor itself,
 the main service,
 and its log service (if any),
@@ -107,7 +107,6 @@ Wayne Marshall, http://b0llix.net/perp/
 .BR perpctl (8),
 .BR perpd (8),
 .BR perpetrate (5),
-.BR perpetrate (8),
 .BR perphup (8),
 .BR perpls (8),
 .BR perpok (8),

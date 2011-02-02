@@ -1,6 +1,6 @@
 /* runtools_common.h
 ** common defines for runtools
-** wcm, 2008.01.23 - 2009.12.15
+** wcm, 2008.01.23 - 2011.01.31
 ** ===
 */
 #ifndef RUNTOOLS_COMMON_H
@@ -14,7 +14,7 @@
 
 /* release version string: */
 #ifndef RUNTOOLS_VERSION
-#define RUNTOOLS_VERSION "0.00"
+#define RUNTOOLS_VERSION "2.00"
 #endif
 
 
@@ -30,17 +30,13 @@
   _exit((e))
 
 #define usage() \
-  {\
-    eputs("usage: ", progname, prog_usage); \
-  }
+  eputs("usage: ", progname, " ", prog_usage)
 
 #define version() \
-  {\
-    eputs(progname, ": version: ", RUNTOOLS_VERSION); \
-  }
+  eputs(progname, ": version: ", RUNTOOLS_VERSION)
 
 #define die_usage() \
-  { usage(); die(100); }
+  {usage(); die(100);}
 
 
 #define fatal(e, ...) \

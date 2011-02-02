@@ -1,16 +1,16 @@
 .\" perpetrate.5
-.\" wcm, 2009.12.02 - 2009.12.15
+.\" wcm, 2009.12.02 - 2011.02.01
 .\" ===
-.TH perpetrate 5 "January 2010" "perp-0.00" "persistent process supervision"
+.TH perpetrate 5 "February 2011" "perp-2.00" "persistent process supervision"
 .SH NAME
 perpetrate \- conventions for runscripts
 .SH DESCRIPTION
-.BR perpetrate (8)
+.BR perpd (8)
 operates on a pair of ``runscripts'' that are executed to start and reset
 a service and an optional logger.
 .PP
 The runscripts recognized by 
-.BR perpetrate (8)
+.BR perpd (8)
 are:
 .PP
 .I rc.log
@@ -34,18 +34,16 @@ but are equally applicable to
 .I rc.log
 unless noted otherwise.
 .PP
-.BR perpetrate (8)
-will invoke its runscripts from within the service definition directory.
+.BR perpd (8)
+will invoke service runscripts from within the service definition directory.
 For example,
-if
-.BR perpetrate (8)
-itself is invoked as:
+given some service definition directory
 .PP
 .RS
-perpetrate foo
+.I /etc/perp/foo
 .RE
 .PP
-.BR perpetrate (8)
+.BR perpd (8)
 will switch into
 .I foo
 before invoking a runscript.
@@ -80,7 +78,7 @@ The argument
 will be set to one of two literal strings,
 either ``start'' or ``reset'',
 depending on whether
-.BR perpetrate (8)
+.BR perpd (8)
 is starting or resetting the service.
 The
 .I svname
@@ -91,7 +89,7 @@ Any additional arguments depend on the
 .IR target .
 .PP
 When using a ``start'' target,
-.BR perpetrate (8)
+.BR perpd (8)
 will invoke the runscript like this:
 .PP
 .RS
@@ -110,19 +108,19 @@ will replace itself by using the
 .B exec
 command to start the service.
 This provides
-.BR perpetrate (8)
+.BR perpd (8)
 with the process ID it needs for the actual running service,
 so that the service may be properly monitored and controlled.
 .PP
 Normally the ``start'' target will result in a persistent process,
 a long-running program that starts at system boot and continues until system shutdown.
 A runscript called with a ``start'' target should generally not return or exit,
-unless some error was encountered in initializing or starting the service.
+unless some error is encountered in initializing or starting the service.
 .PP
 As long-running as a service may be,
 whenever it does exit,
 for any reason,
-.BR perpetrate (8)
+.BR perpd (8)
 will call the runscript again with a ``reset'' target.
 A ``reset'' target
 will invoke the runscript with additional arguments in either one of two forms,
@@ -172,12 +170,12 @@ a runscript doesn't have to do anything with a ``reset'' target at all.
 There are no particular conditions or requirements for a resetting service,
 except that the runscript should normally return/exit as promptly as possible.
 A resetting runscript will usually do its job quickly so that
-.BR perpetrate (8)
-may start the service again.
+.BR perpd (8)
+may start the service again as soon as possible.
 .SH EXAMPLES
-Assume that the
-.BR perpetrate (8)
-supervisor has been invoked with an argument of
+Assume that 
+.BR perpd (8)
+is supervising some service defined in the subdirectory
 .IR foo .
 The simplest barebones
 .I rc.main
@@ -346,19 +344,18 @@ have fewer unexpected side effects,
 and are generally more portable among different host installations.
 .SH COMPATIBILITY
 For users familiar with the daemontools package,
-the runscript conventions of
-.BR perpetrate (8)
+the runscript conventions described here
 are not directly interchangeable with those of
 .BR supervise (8).
 The main difference is that the
 .I run
 scripts of daemontools
-are designed to perform only on a startup of a service,
+are designed to perform only on startup of a service,
 and will have no facility for properly handling a ``reset'' argument.
 .PP
 Nevertheless,
 it is trivial to provide compatibility to
-.BR perpetrate (8)
+.BR perpd (8)
 for any pre-existing daemontools
 .I run
 scripts.
@@ -387,6 +384,29 @@ if test ${1} = 'start' ; then
 fi
 .fi
 .RE
+.SH HISTORY
+The
+.BR perpd (8)
+daemon formerly used multiple instances of a
+.BR perpetrate (8)
+executable,
+running one instance for each service under supervision.
+Under that architecture,
+the
+.BR perpetrate (8)
+executable performed all the supervisory operations on the service definition
+as described in this manual.
+.PP
+Beginning with version 2.0,
+the operations of the
+.BR perpetrate (8)
+executable were internally coalesced with
+.BR perpd (8)
+itself, and the need for
+.BR perpetrate (8)
+was eliminated.
+Meanwhile, all the runscript conventions have otherwise remained the same,
+and the name of this manual page has been retained to describe them.
 .SH AUTHOR
 Wayne Marshall, http://b0llix.net/perp/
 .SH SEE ALSO
@@ -395,7 +415,6 @@ Wayne Marshall, http://b0llix.net/perp/
 .BR perpboot (8),
 .BR perpctl (8),
 .BR perpd (8),
-.BR perpetrate (8),
 .BR perphup (8),
 .BR perpls (8),
 .BR perpok (8),

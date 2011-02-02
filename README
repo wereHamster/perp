@@ -1,7 +1,7 @@
 # README
 # perp: persistent process supervision
 # (includes runtools and libasagna)
-# wcm, 2009.12.28 - 2010.01.08
+# wcm, 2009.12.28 - 2011.02.02
 # ===
 
 This is perp, aka "the perpetrator", a persistent process supervisor.
@@ -26,6 +26,17 @@ services on any un!x platform, initializes services reliably within
 a consistent process environment, and makes sure they continue to
 run and log untended for as long as necessary.
 
+-Is that all?
+
+The big news with release 2.0 is that the perpd(8) daemon now runs as
+a single process, coalescing all the operations formerly provided by
+multiple perpetrate(8) supervisors into a single executable.  By
+eliminating all the supervisory "middle-man" processes, the context
+switching overhead of the perp system is substantially simplified over
+earlier releases.  And perpd(8) now sets up a mere 2 file objects on
+startup -- a lock file and a domain socket -- and otherwise generates
+no disk activity whatsoever during runtime.
+
 -Says you!
 
 Sigh...
@@ -33,12 +44,12 @@ Sigh...
 
 Package Layout:
 
-  ./INSTALL     how to install
+  ./CHANGES     changlog and release history
+  ./INSTALL     how to install/upgrade
   ./LICENSE     copyright/license info
-  ./README      this here file here
+  ./README      this here file right here
   ./conf.mk     build/install configuration file
   ./examples/*  sample service definitions
-  ./html/*      some misc html docs (in draft)
   ./lasagna/*   libasagna utility library sources
   ./perp/*      perp build sources
   ./runtools/*  runtools build sources
@@ -47,27 +58,29 @@ Package Layout:
 Requirements:
 
 This package is intended to build, install and run on any contemporary
-un!x platform without additional requirements.  It has been tested on the
-following platforms:
+un!x platform without additional requirements.  It has been tested on
+the following platforms:
 
+  NetBSD 5.0, i386
   Linux 2.6+, i686, gcc + gnu libc
   Linux 2.6+, i686, gcc + dietlibc
   Linux 2.6+, x86_64, gcc + dietlibc
-  NetBSD 5.0, i386
+  Darwin 10.3.2 (Mac OSX), i386
 
 
 Installation:
 
-See INSTALL for complete installation instructions.  
+See INSTALL for complete instructions on building and installing the
+software, and upgrading from an earlier release.  
 
 
 Documentation:
 
-This package includes a set of troff -man pages.  To view them
-prior to installation, see the /man subdirectory within each of
-the ./perp and ./runtools subdirectories.  It is suggested to skim
-the following pages for an overview of the system:  perp_intro.8,
-perpd.8, perpetrate.8, perpetrate.5, and perp-setup.8.
+This package includes a set of troff -man pages.  To view them prior
+to installation, see the /man subdirectory within each of the ./perp
+and ./runtools subdirectories.  It is suggested to skim the following
+pages for an overview of the system:  perp_intro.8, perpd.8, perpetrate.5,
+and perp-setup.8.
 
 
 Process 1 (/sbin/init) Support:

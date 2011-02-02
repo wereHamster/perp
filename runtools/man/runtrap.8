@@ -1,7 +1,7 @@
 .\" runtrap.8
-.\" wcm, 2009.12.11 - 2009.12.15
+.\" wcm, 2009.12.11 - 2011.02.01
 .\" ===
-.TH runtrap 8 "January 2010" "runtools-0.00" "runtools"
+.TH runtrap 8 "February 2011" "runtools-2.00" "runtools"
 .SH NAME
 runtrap \- run a program with a signal trapper
 .SH SYNOPSIS
@@ -123,7 +123,7 @@ Print the version number to stderr and exit.
 .SH EXAMPLES
 .B runtrap
 is designed for use in
-.BR perpetrate (8)
+.BR perpetrate (5)
 runscripts for services that need special signal handling.
 The example below shows how an
 .I rc.main
@@ -176,5 +176,7 @@ Wayne Marshall, http://b0llix.net/perp/
 .BR runpause (8),
 .BR runsession (8),
 .BR runtool (8),
-.BR runuid (8)
+.BR runuid (8),
+.BR perpd (8),
+.BR perpetrate (5)
 .\" EOF

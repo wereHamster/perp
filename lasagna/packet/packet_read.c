@@ -1,6 +1,6 @@
 /* packet_read.c
 ** packet i/o module
-** wcm, 2008.01.04 - 2009.09.18
+** wcm, 2008.01.04 - 2010.12.01
 ** ===
 */
 
@@ -34,7 +34,7 @@ new_packet_read(int fd, struct packet *k)
     }
 
     len = (size_t)buf[2];
-    if(r != (len + 3)){
+    if(r != (ssize_t)(len + 3)){
         /* length mismatch (protocol error or short read): */ 
         errno = EPROTO;
         return -1;

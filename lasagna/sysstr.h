@@ -1,6 +1,6 @@
 /* sysstr.h
 ** correlate errno and signal numbers with stringified names
-** wcm, 2008.01.21 - 2008.01.22
+** wcm, 2008.01.21 - 2011.02.01
 ** ===
 */
 #ifndef SYSSTR_H
@@ -28,13 +28,13 @@ extern const char *sysstr_errno_mesg(int errno_num);
 ** return pointer to signal name corresponding to signal,
 ** or NULL if not found:
 */
-extern const char *sysstr_signal(int signal);
+extern const char *sysstr_signal(int signum);
 
 /*
 ** return pointer to signal message corresponding to signal,
 ** or NULL if not found:
 */
-extern const char *sysstr_signal_mesg(int signal);
+extern const char *sysstr_signal_mesg(int signum);
 
 
 

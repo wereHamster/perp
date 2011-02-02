@@ -1,6 +1,6 @@
 /* cstr.h
 ** cstr: nul-terminated character buffer
-** wcm, 2004.04.19 - 2010.01.07
+** wcm, 2004.04.19 - 2010.11.09
 ** ===
 */
 #ifndef CSTR_H
@@ -29,6 +29,16 @@ extern
 size_t
 cstr_cat(char *to, const char *from);
 
+/* cstr_chop()
+**  synopsis:
+**    remove single trailing '\n' if present from end of string
+**
+**  return:
+**    s
+*/
+extern
+char *
+cstr_chop(char *s);
 
 /* cstr_cmp()
 **   synopsis:
@@ -141,6 +151,42 @@ cstr_len(const char *s);
 extern
 char *
 cstr_ltrim(char *s);
+
+/* cstr_match()
+**   synopsis:
+**     match string s against pattern
+**     pattern may include:
+**       - any literal character, matched case-sensitive
+**       - '?' matches any single character
+**       - '*' matches any zero or more characters
+**     pattern is nul-terminated
+**
+**   return:
+**     1: match
+**     0: no match
+**
+**   notes:
+**     fast, non-recursive implementation
+**     no supplemental storage allocated (eg, as compared to regex)
+**     less "powerful" than fnmatch(), regex()
+**         eg: no [..] set/range match, no escaping wildcards, etc.
+**     pattern is implicitly anchored from beginning to end of string
+*/
+extern
+int
+cstr_match(const char *pattern, const char *s);
+
+/* cstr_matchi()
+**   synopsis:
+**     case-insensitive version of cstr_match()
+**
+**   return:
+**     1: match
+**     0: no match
+*/
+extern
+int
+cstr_matchi(const char *pattern, const char *s);
 
 /* cstr_ncmp()
 **   synopsis:

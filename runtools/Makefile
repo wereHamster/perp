@@ -1,7 +1,7 @@
 # Makefile
 # makfile for runtools:
 # utilities for perpetrate runscripts
-# wcm, 2008.01.04 - 2009.12.20
+# wcm, 2008.01.04 - 2011.02.01
 # ===
 
 # build configuration:
@@ -34,108 +34,58 @@ CATTOOLS = \
 all: $(RUNTOOLS) $(CATTOOLS)
 
 ## runtools:
-runargs.o: runargs.c runtools_common.h
-	$(CC) $(CFLAGS) -c runargs.c
+runargs: runargs.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runargs.c $(LDFLAGS)
 
-runargs: runargs.o
-	$(CC) $(CFLAGS) -o $@ runargs.o $(LDFLAGS)
+runargv0: runargv0.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runargv0.c $(LDFLAGS)
 
-runargv0.o: runargv0.c runtools_common.h
-	$(CC) $(CFLAGS) -c runargv0.c
+rundetach: rundetach.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ rundetach.c $(LDFLAGS)
 
-runargv0: runargv0.o
-	$(CC) $(CFLAGS) -o $@ runargv0.o $(LDFLAGS)
+rundeux: rundeux.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ rundeux.c $(LDFLAGS)
 
-rundetach.o: rundetach.c runtools_common.h
-	$(CC) $(CFLAGS) -c rundetach.c
+runenv: runenv.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runenv.c $(LDFLAGS)
 
-rundetach: rundetach.o
-	$(CC) $(CFLAGS) -o $@ rundetach.o $(LDFLAGS)
+runfile: runfile.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runfile.c $(LDFLAGS)
 
-rundeux.o: rundeux.c runtools_common.h
-	$(CC) $(CFLAGS) -c rundeux.c
+runlimit: runlimit.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runlimit.c $(LDFLAGS)
 
-rundeux: rundeux.o
-	$(CC) $(CFLAGS) -o $@ rundeux.o $(LDFLAGS)
+runlock: runlock.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runlock.c $(LDFLAGS)
 
-runenv.o: runenv.c runtools_common.h
-	$(CC) $(CFLAGS) -c runenv.c
+runpause: runpause.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runpause.c $(LDFLAGS)
 
-runenv: runenv.o
-	$(CC) $(CFLAGS) -o $@ runenv.o $(LDFLAGS)
+runsession: runsession.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runsession.c $(LDFLAGS)
 
-runfile.o: runfile.c runtools_common.h
-	$(CC) $(CFLAGS) -c runfile.c
+runtool: runtool.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runtool.c $(LDFLAGS)
 
-runfile: runfile.o
-	$(CC) $(CFLAGS) -o $@ runfile.o $(LDFLAGS)
+runtrap: runtrap.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runtrap.c $(LDFLAGS)
 
-runlimit.o: runlimit.c runtools_common.h
-	$(CC) $(CFLAGS) -c runlimit.c
+runuid: runuid.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runuid.c $(LDFLAGS)
 
-runlimit: runlimit.o
-	$(CC) $(CFLAGS) -o $@ runlimit.o $(LDFLAGS)
-
-runlock.o: runlock.c runtools_common.h
-	$(CC) $(CFLAGS) -c runlock.c
-
-runlock: runlock.o
-	$(CC) $(CFLAGS) -o $@ runlock.o $(LDFLAGS)
-
-runpause.o: runpause.c runtools_common.h
-	$(CC) $(CFLAGS) -c runpause.c
-
-runpause: runpause.o
-	$(CC) $(CFLAGS) -o $@ runpause.o $(LDFLAGS)
-
-runsession.o: runsession.c runtools_common.h
-	$(CC) $(CFLAGS) -c runsession.c
-
-runsession: runsession.o
-	$(CC) $(CFLAGS) -o $@ runsession.o $(LDFLAGS)
-
-runtool.o: runtool.c runtools_common.h
-	$(CC) $(CFLAGS) -c runtool.c
-
-runtool: runtool.o
-	$(CC) $(CFLAGS) -o $@ runtool.o $(LDFLAGS)
-
-runtrap: runtrap.o
-	$(CC) $(CFLAGS) -o $@ runtrap.o $(LDFLAGS)
-
-runtrap.o: runtrap.c runtools_common.h
-	$(CC) $(CFLAGS) -c runtrap.c
-
-runuid: runuid.o
-	$(CC) $(CFLAGS) -o $@ runuid.o $(LDFLAGS)
-
-runuid.o: runuid.c runtools_common.h
-	$(CC) $(CFLAGS) -c runuid.c
 
 ## cattools:
-catargs: catargs.o
-	$(CC) $(CFLAGS) -o $@ catargs.o $(LDFLAGS)
+catargs: catargs.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ catargs.c $(LDFLAGS)
 
-catargs.o: catargs.c runtools_common.h
-	$(CC) $(CFLAGS) -c catargs.c
+catenv: catenv.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ catenv.c $(LDFLAGS)
 
-catenv: catenv.o
-	$(CC) $(CFLAGS) -o $@ catenv.o $(LDFLAGS)
+catlimits: catlimits.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ catlimits.c $(LDFLAGS)
 
-catenv.o: catenv.c runtools_common.h
-	$(CC) $(CFLAGS) -c catenv.c
-
-catlimits: catlimits.o
-	$(CC) $(CFLAGS) -o $@ catlimits.o $(LDFLAGS)
-
-catlimits.o: catlimits.c runtools_common.h
-	$(CC) $(CFLAGS) -c catlimits.c
-
-catuid: catuid.o
-	$(CC) $(CFLAGS) -o $@ catuid.o $(LDFLAGS)
-
-catuid.o: catuid.c runtools_common.h
-	$(CC) $(CFLAGS) -c catuid.c
+catuid: catuid.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ catuid.c $(LDFLAGS)
 
 
 ## misc targets:
@@ -145,26 +95,34 @@ TARGETS: Makefile
 clean: TARGETS
 	rm -f `cat TARGETS` TARGETS
 
-install: install-sbin install-man
-
 install-man:
-	install -d -m 0755 $(DESTDIR)$(MAN)/man8
+	install -d -m 0755 $(DESTDIR)$(MANDIR)/man8
 	@for f in ./man/*.8 ; do\
-	  echo "install -m 0644 $${f} $(DESTDIR)$(MAN)/man8" ;\
-	  install -m 0644 $${f} $(DESTDIR)$(MAN)/man8 ;\
+	  echo "install -m 0644 $${f} $(DESTDIR)$(MANDIR)/man8" ;\
+	  install -m 0644 $${f} $(DESTDIR)$(MANDIR)/man8 ;\
 	done
 
 install-sbin: $(RUNTOOLS)
-	install -d -m 0755 $(DESTDIR)$(SBIN)
+	install -d -m 0755 $(DESTDIR)$(SBINDIR)
 	@for f in $(RUNTOOLS) ; do\
-	  echo "install -m 0755 $${f} $(DESTDIR)$(SBIN)";\
-	  install -m 0755 $${f} $(DESTDIR)$(SBIN);\
+	  echo "install -m 0755 $${f} $(DESTDIR)$(SBINDIR)";\
+	  install -m 0755 $${f} $(DESTDIR)$(SBINDIR);\
+	done
+
+install: install-sbin install-man
+
+## "cattools" not installed by default:
+install-cattools: $(CATTOOLS)
+	install -d -m 0755 $(DESTDIR)$(BINDIR)
+	@for f in $(CATTOOLS) ; do\
+	  echo "install -m 0755 $${f} $(DESTDIR)$(BINDIR)";\
+	  install -m 0755 $${f} $(DESTDIR)$(BINDIR);\
 	done
 
 strip: $(RUNTOOLS) $(CATTOOLS)
 	strip  $(RUNTOOLS) $(CATTOOLS)
 
 
-.PHONY: all clean install install-man install-sbin strip
+.PHONY: all clean install install-man install-sbin install-cattools strip
 
 ### EOF (Makefile)

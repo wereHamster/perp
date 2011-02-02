@@ -1,7 +1,7 @@
 /* pidlock.h
 ** pidlock: runtime lockfile for single process restriction
 ** (implemented with posix advisory locking through padlock module)
-** wcm, 2008.10.09 - 2009.09.29
+** wcm, 2008.10.09 - 2011.02.01
 ** ===
 */
 #ifndef PIDLOCK_H
@@ -29,13 +29,13 @@ extern pid_t pidlock_check(const char *lockfile);
 /* pidlock_set()
 **   acquire exclusive lock with padlock on lockfile
 **   if pid non-zero, write pid into lockfile after lock acquired
-**   uses padlock module, exclusive lock, blocking according to wait
+**   uses padlock module, exclusive lock, blocking according to lockwait
 **
 **   return
 **     >= 0 : ok, pidlock set successfully, open fd returned
 **    -1    : failure
 */
-extern int pidlock_set(const char *lockfile, pid_t pid, enum pidlock_wait wait);
+extern int pidlock_set(const char *lockfile, pid_t pid, enum pidlock_wait lockwait);
 
 
 #endif /* PIDLOCK_H */

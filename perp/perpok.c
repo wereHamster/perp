@@ -1,35 +1,44 @@
 /* perpok.c
-** perpok: check perpetrate supervisor
-** wcm, 2009.11.09 - 2009.12.06
+** perp: persistent process supervision
+** perp 2.0: single process scanner/supervisor/controller
+** perpok: query and return service "ok"
+** (ipc client query to perpd server)
+** wcm, 2009.11.09 - 2011.01.27
 ** ===
 */
 
-/* standard library: */
+/* libc: */
 #include <stdlib.h>
 
 /* unix: */
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/types.h>
+#include <signal.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 
-/* lasagna: */
+/* lasanga: */
+#include "buf.h"
 #include "cstr.h"
+#include "domsock.h"
+#include "fd.h"
 #include "nextopt.h"
-#include "nscan.h"
+#include "nfmt.h"
+#include "nuscan.h"
+#include "pidlock.h"
+#include "pkt.h"
 #include "sysstr.h"
 #include "tain.h"
+#include "upak.h"
 #include "uchar.h"
 
-/* perp: */
-#define  EPUTS_DEVOUT
-#include "eputs.h"
 #include "perp_common.h"
-#include "perplib.h"
+#include "perp_stderr.h"
+
 
 static const char *progname = NULL;
-static const char prog_usage[] = " [-hV] [-b basedir] [-u secs] [-v] sv";
+static const char prog_usage[] = "[-hV] [-b basedir] [-u secs] [-v] sv";
 
 
 #define  report_fail(...) \
@@ -49,142 +58,161 @@ static const char prog_usage[] = " [-hV] [-b basedir] [-u secs] [-v] sv";
   }
 
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-   char           opt;
-   nextopt_t      nopt = nextopt_INIT(argc, argv, ":hVb:u:v");
-   int            verbose = 0;
-   uint32_t       arg_upsecs = 0;
-   const char    *nscan_end;
-   const char    *basedir = NULL;
-   const char    *svdir = NULL;
-   struct stat    st;
-   const char    *ctlpath;
-   const uchar_t *binstat;
-   perpstat_t     perpstat;
-   uchar_t        flags;
-   tain_t         now;
+  nextopt_t       nopt = nextopt_INIT(argc, argv, ":hVb:u:v");
+  char            opt;
+  int             verbose = 0;
+  const char     *basedir = NULL;
+  uint32_t        arg_upsecs = 0;
+  const char     *z;
+  const char     *svdir = NULL;
+  struct stat     st;
+  char            pathbuf[256];
+  size_t          n;
+  int             fd_conn;
+  pkt_t           pkt = pkt_INIT(2, 'Q', 16);
+  uchar_t        *status = pkt_data(pkt);
+  pid_t           pid_main;
+  tain_t          when_main;
+  uint64_t        uptime_main;
+  uchar_t         flags;
+  tain_t          now;
 
-   progname = nextopt_progname(&nopt);
-   while ((opt = nextopt(&nopt))) {
-      char           optc[2] = { nopt.opt_got, '\0' };
-      switch (opt) {
-      case 'h':
-         usage();
-         die(0);
-         break;
-      case 'V':
-         version();
-         die(0);
-         break;
-      case 'b':
-         basedir = nopt.opt_arg;
-         break;
+  progname = nextopt_progname(&nopt);
+  while((opt = nextopt(&nopt))){
+      char optc[2] = {nopt.opt_got, '\0'};
+      switch(opt){
+      case 'h': usage(); die(0); break;
+      case 'V': version(); die(0); break;
+      case 'b': basedir = nopt.opt_arg; break;
       case 'u':
-         arg_upsecs = nscan_uint32(nopt.opt_arg, &nscan_end);
-         if (*nscan_end != '\0') {
-            fatal_usage("numeric argument required for option -", optc);
-         }
-         break;
-      case 'v':
-         ++verbose;
-         break;
+          z = nuscan_uint32(&arg_upsecs, nopt.opt_arg);
+          if(*z != '\0'){
+              fatal_usage("non-numeric argument found for option -", optc, " ", nopt.opt_arg);
+          }
+          break;
+      case 'v': ++verbose; break;
       case ':':
-         fatal_usage("missing argument for option -", optc);
-         break;
+          fatal_usage("missing argument for option -", optc);
+          break;
       case '?':
-         if (nopt.opt_got != '?') {
-            fatal_usage("invalid option -", optc);
-         }
-         /* else fallthrough: */
-      default:
-         die_usage();
-         break;
+          if(nopt.opt_got != '?'){
+              fatal_usage("invalid option -", optc);
+          }
+          /* else fallthrough: */
+      default : die_usage(); break;
       }
-   }
+  }
 
-   argc -= nopt.arg_ndx;
-   argv += nopt.arg_ndx;
+  argc -= nopt.arg_ndx;
+  argv += nopt.arg_ndx;
 
-   svdir = argv[0];
-   if (svdir == NULL) {
+  svdir = argv[0];
+  if(svdir == NULL){
       fatal_usage("missing argument");
-   }
+  }
 
-   if (!basedir)
+  if(!basedir)
       basedir = getenv("PERP_BASE");
-   if (!basedir)
+  if(!basedir)
       basedir = ".";
 
-   if (chdir(basedir) != 0) {
-      fatal_syserr("fail chdir() to ", basedir);
-   }
 
-   if (stat(svdir, &st) == -1) {
-      fatal_syserr("fail stat() on service directory ", svdir);
-   }
+  if(chdir(basedir) != 0){
+      fatal_syserr("failure chdir() to ", basedir);
+  }
 
-   if (!S_ISDIR(st.st_mode)) {
+  if(stat(svdir, &st) == -1){
+      fatal_syserr("failure stat() on service directory ", svdir);
+  }
+
+  if(! S_ISDIR(st.st_mode)){
       fatal_usage("argument not a directory: ", svdir);
-   }
+  }
 
-   if (!(S_ISVTX & st.st_mode)) {
-      report_fail("service directory not activated");
-   }
+  if(!(S_ISVTX & st.st_mode)){
+      report_fail("service directory ", svdir, " not activated");
+  }
 
-   /* get path to service control directory (relative to cwd): */
-   ctlpath = perp_ctlpath(&st);
-
-   if (perp_ready(ctlpath) == -1) {
-      report_fail("supervisor not running\n");
-   }
-
-   if (arg_upsecs == 0) {
-      /* all done: */
-      report_ok("supervisor running ok");
-   }
-
-   /*
-    ** else: extended testing...
-    */
-
-   /* read binary-encoded status: */
-   binstat = perp_binstat(ctlpath);
-   if (binstat == NULL) {
-      if (errno == EPROTO) {
-         report_fail("bad status format found in ", STATUS_BIN);
+  /* connect to control socket: */
+  n = cstr_vlen(basedir, "/", PERP_CONTROL, "/", PERPD_SOCKET);
+  if(!(n < sizeof pathbuf)){
+      errno = ENAMETOOLONG;
+      fatal_syserr("failure locating perpd control socket ",
+                   basedir, "/", PERP_CONTROL, "/", PERPD_SOCKET);
+  }
+  cstr_vcopy(pathbuf, basedir, "/", PERP_CONTROL, "/", PERPD_SOCKET);
+  fd_conn = domsock_connect(pathbuf);
+  if(fd_conn == -1){
+      if(errno == ECONNREFUSED){
+          fatal_syserr("perpd not running on control socket ", pathbuf);
       } else {
-         report_fail("error reading status in ", STATUS_BIN, ": ",
-                     sysstr_errno(errno));
+          fatal_syserr("failure connecting to perpd control socket ", pathbuf);
       }
-   }
+  }
 
-   /* decode status: */
-   perp_statload(&perpstat, binstat);
+  /* uptime compared to now: */
+  tain_now(&now);
 
-   if (perpstat.subsv[SUBSV_MAIN].pid == 0) {
+  /* status query packet: */ 
+  upak_pack(pkt_data(pkt), "LL", (uint64_t)st.st_dev, (uint64_t)st.st_ino);
+
+  if(pkt_write(fd_conn, pkt, 0) == -1){
+      fatal_syserr("failure pkt_write() to perpd control socket");
+  }
+
+  if(pkt_read(fd_conn, pkt, 0) == -1){
+      fatal_syserr("failure pkt_read() from perpd control socket");
+  }
+
+  /* done with connection: */
+  close(fd_conn);
+
+  if(pkt[0] != 2){
+      fatal(111, "unknown protocol found in reply from perpd control socket");
+  }
+  if(pkt[1] != 'S'){
+      if(pkt[1] == 'E'){
+          errno = (int)upak32_unpack(&pkt[3]);
+          fatal_syserr("error reported in reply from perpd control socket");
+      } else {
+          fatal(111, "unknown packet reply type from perpd control socket");
+      }
+  }
+
+  if(arg_upsecs == 0){
+  /* basic test complete: */
+      report_ok("service is activated/ok");
+  }
+
+  /* else continue extended testing... */
+
+  pid_main = upak32_unpack(&status[30]);
+  if(!(pid_main > 0)){
       report_fail("service not running (pid is 0)");
-   }
+  }
 
-   flags = perpstat.subsv[SUBSV_MAIN].flags;
-   if (subsv_isreset(flags)) {
-      report_fail("service resetting");
-   }
-   if (subsv_iswant(flags)) {
+  flags = status[46];
+  if(flags & SUBSV_FLAG_ISRESET){
+      report_fail("service is resetting");
+  }
+  if(flags & SUBSV_FLAG_WANTDOWN){
       report_fail("service wants down");
-   }
+  }
 
-   /* test uptime compared to now: */
-   tain_now(&now);
-   if ((perp_uptime(&now, &perpstat.subsv[SUBSV_MAIN].when)) < arg_upsecs) {
+  tain_unpack(&when_main, &status[34]);
+  uptime_main = tain_uptime(&now, &when_main);
+  if(uptime_main < (uint64_t)arg_upsecs){
       report_fail("service uptime not met");
-   }
+  }
 
-   /* else okiedokeyshmokey: */
-   report_ok("service uptime ok");
+  /* okie dokie! */
+  report_ok("service uptime ok");
 
-   /* not reached: */
-   return 0;
+  /* not reached: */
+  die(0);
 }
 
 

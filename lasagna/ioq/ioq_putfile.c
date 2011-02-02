@@ -1,5 +1,5 @@
 /* ioq_putfile.c
-** wcm, 2010.01.07 - 2010.01.07
+** wcm, 2010.01.07 - 2010.06.25
 ** ===
 */
 /* stdlib: */
@@ -56,7 +56,7 @@ ioq_putfile(ioq_t *ioq, const char *filename)
         return 0;
     }
 
-    map = (uchar_t *)mmap(0, len, PROT_READ, (MAP_PRIVATE | MAP_FILE), fd, 0);
+    map = (uchar_t *)mmap(0, len, PROT_READ, MAP_SHARED, fd, 0);
     if(map == MAP_FAILED){
         goto fail;
     }

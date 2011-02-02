@@ -1,6 +1,6 @@
 /* dynstr.h
 ** dynamic (growable) character strings (nul-terminated)
-** wcm, 2004.04.21 - 2009.09.10
+** wcm, 2004.04.21 - 2010.06.15
 ** ===
 */
 #ifndef DYNSTR_H
@@ -106,6 +106,17 @@ extern int dynstr_vputs_(dynstr_t *, const char *s, ...);
 /* dynstr "copy" operations (overwrite previous contents): */
 extern int dynstr_copy(dynstr_t *to, dynstr_t *from);
 extern int dynstr_copys(dynstr_t *S, const char *s);
+
+
+/*
+** string manipulation
+*/
+
+/* dynstr_chop()
+**   remove trailing '\n' if present from end of dynstr
+*/
+extern void dynstr_chop(dynstr_t *S);
+
 
 #endif /* DYNSTR_H */
 /* eof: dynstr.h */

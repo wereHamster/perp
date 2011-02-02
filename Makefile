@@ -1,8 +1,8 @@
 # Makefile
-# makfile for project perp:
-# a persistent process supervisor and utility suite
-# includes perp, runtools, and libasagna
-# wcm, 2008.01.04 - 2009.12.05
+# master makfile for project perp
+# perp: a persistent process supervisor (and utility suite)
+# includes: perp, runtools, and libasagna
+# wcm, 2008.01.04 - 2011.01.31
 # ===
 
 # build configuration (not used in this makefile):
@@ -46,7 +46,7 @@ clean:
 cleanlib:
 	rm -f ./_lasagna.done; cd lasagna && $(MAKE) clean
 
-cleanall: cleanlib clean
+cleanall distclean: cleanlib clean
 	rm -f ./_all.done
 
 
@@ -58,7 +58,7 @@ strip:
 	cd perp && $(MAKE) strip
 	cd runtools && $(MAKE) strip
 
-.PHONY: all lasagna perpapps runtools clean cleanall cleanlib install strip
+.PHONY: all lasagna perpapps runtools clean cleanall cleanlib distclean install strip
 
 
 ### EOF (Makefile)

@@ -1,6 +1,6 @@
 /* dynbuf.h
 ** dynamic (growable) buffer
-** wcm, 2004.04.21 - 2009.09.09
+** wcm, 2004.04.21 - 2010.05.29
 ** ===
 */
 #ifndef DYNBUF_H
@@ -69,8 +69,7 @@ extern int dynbuf_putbuf(dynbuf *, const void *buf, size_t len);
 extern int dynbuf_puts(dynbuf *, const char *str);
 
 /* dynbuf_putc()
-** append single byte
-** XXX, failing
+** append single char/byte
 */
 #define dynbuf_putc(d,c)  dynbuf_putbuf((d),&(c),1)
 

@@ -1,10 +1,10 @@
 /* cstr_cmp.c
-** wcm, 2004.04.19 - 2009.08.03
+** wcm, 2004.04.19 - 2009.11.09
 ** ===
 */
 #include "cstr.h"
 
-int cstr_cmp( const char *s1,  const char *s2)
+int cstr_cmp(const char *s1,  const char *s2)
 {
   char c;
 

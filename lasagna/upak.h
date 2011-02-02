@@ -1,6 +1,6 @@
 /* upak.h
 ** upak, portable storage for unsigned integers
-** wcm, 2004.12.29 - 2009.07.27
+** wcm, 2004.12.29 - 2010.12.09
 ** ===
 */
 #ifndef UPAK_H
@@ -8,6 +8,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+
+#include <unistd.h> /* ssize_t */
 
 #include "uchar.h"
 
@@ -43,26 +45,72 @@
 **   return uintNN_t integer unpacked from buffer b
 */
 
+
 /* upak16_*(), for uint16_t (caller supplies buf[2]): */
 extern uchar_t * upak16_pack(uchar_t *buf, uint16_t u);
 extern uint16_t upak16_unpack(const uchar_t *buf);
+/* inline unpack: */
+#define upak16_UNPACK(b) \
+  (\
+      (((uint16_t)(((uchar_t *)(b))[1])) << 8) + \
+        (uint16_t)(((uchar_t *)(b))[0]) \
+  )
+
+
+/* upak24_*(), for uint32_t (caller supplies buf[3])
+**   special notes:
+**     pack/unpack unsigned integer in range [0..(2^24 - 1)]
+**     no range checking in upak24_pack()
+**     (caller must screen input)
+*/
+extern uchar_t * upak24_pack(uchar_t *buf, uint32_t u);
+extern uint32_t upak24_unpack(const uchar_t *buf);
+/* inline unpack: */
+#define upak24_UNPACK(b) \
+  (\
+      (((uint32_t)(((uchar_t *)(b))[2])) << 16) + \
+      (((uint32_t)(((uchar_t *)(b))[1])) << 8) + \
+        (uint32_t)(((uchar_t *)(b))[0]) \
+  )
+
 
 /* upak32_*(), for uint32_t (caller supplies buf[4]: */
 extern uchar_t * upak32_pack(uchar_t *buf, uint32_t u);
 extern uint32_t upak32_unpack(const uchar_t *buf);
+/* inline unpack: */
+#define upak32_UNPACK(b) \
+  (\
+      (((uint32_t)(((uchar_t *)(b))[3])) << 24) + \
+      (((uint32_t)(((uchar_t *)(b))[2])) << 16) + \
+      (((uint32_t)(((uchar_t *)(b))[1])) << 8) + \
+        (uint32_t)(((uchar_t *)(b))[0]) \
+  )
+
 
 /* upak64_*(), for uint64_t (caller supplies buf[8]: */
 extern uchar_t * upak64_pack(uchar_t *buf, uint64_t u);
 extern uint64_t upak64_unpack(const uchar_t *buf);
+/* inline unpack: */
+#define upak64_UNPACK(b) \
+  (\
+      (((uint64_t)(((uchar_t *)(b))[7])) << 56) + \
+      (((uint64_t)(((uchar_t *)(b))[6])) << 48) + \
+      (((uint64_t)(((uchar_t *)(b))[5])) << 40) + \
+      (((uint64_t)(((uchar_t *)(b))[4])) << 32) + \
+      (((uint64_t)(((uchar_t *)(b))[3])) << 24) + \
+      (((uint64_t)(((uchar_t *)(b))[2])) << 16) + \
+      (((uint64_t)(((uchar_t *)(b))[1])) << 8) + \
+        (uint64_t)(((uchar_t *)(b))[0]) \
+  )
 
 
-/* upak_*():
+/* upak_*(buf, fmt, ...):
 **   variable argument utilities:
 **   under control of specification string in fmt
-**   pack/unpack variable number of arguments
+**   pack/unpack variable number of arguments to/from buf
 **
 **   characters interpreted in fmt:
-**     'b'  1 byte  unsigned char
+**     'b'  1 byte  uchar_t  (ie, unsigned char)
 **     's'  2 byte  uint16_t
 **     'd'  4 byte  uint32_t
 **     'L'  8 byte  uint64_t
@@ -71,22 +119,26 @@ extern uint64_t upak64_unpack(const uchar_t *buf);
 */
 
 /* upak_pack()
-**   pack variable uintNN arguments specified in fmt into buf
-**   packed into consecutive position from beginning of buf
+**   pack variable uintNN_t arguments specified in fmt into buf
+**   packed into successive position beginning from buf[0]
 **
-**   return: number of bytes packed into buf
+**   return:
+**     >= 0: number of bytes packed into buf
+**     -1  : error, errno = EINVAL (unknown format character in fmt)
 **
 **   note: caller must supply buf of sufficient size!
 */
-extern size_t upak_pack(uchar_t *buf, char *fmt, ...);
+extern ssize_t upak_pack(uchar_t *buf, char *fmt, ...);
 
 /* upak_unpack()
 **   unpack from buf the variable number of packed integers specified in fmt
-**   into the matching number of variable integer arguments
+**   unpack into the matching number of variable integer arguments
 **
-**   return: number of bytes unpacked from buf
+**   return:
+**     >= 0: number of bytes unpacked from buf
+**     -1  : error, errno = EINVAL (unknown format character in fmt)
 */
-extern size_t upak_unpack(uchar_t *buf, char *fmt, ...);
+extern ssize_t upak_unpack(uchar_t *buf, char *fmt, ...);
 
 
 #endif /* UPAK_H */

@@ -1,5 +1,5 @@
 # lasagna/README
-# wcm, 2009.12.20 - 2009.12.20
+# wcm, 2009.12.20 - 2010.12.30
 # ===
 
 This is libasagna, or "-lasagna", a cheesy high-cholesterol general
@@ -32,31 +32,37 @@ The library provides a set of purpose-specific modules described by
 their header files:
 
     buf.h       operations on byte buffers
+    cdb.h       constant database hash on disk (cdb)
     cstr.h      operations on C strings (nul-terminated char buffers)
+    die.h       immediate process termination
     devout.h    unbuffered write()
+    domsock.h   interface to unix/local domain sockets
     dynbuf.h    dynamic (growable) buffers
     dynstr.h    dynamic (growable) strings
     dynstuf.h   dynamic (growable) "stuff"
     execvx.h    extended execve()
     fd.h        operations on file descriptors
-    ioq.h       fully buffered i/o
+    hdb.h       hash database (hdb32) file operations (hdb)
+    ioq.h       fully buffered ("queued") i/o
     ioq_std.h   predefined ioq's for stdin, stdout, stderr
     newenv.h    setup environment for child process
     nextopt.h   command-line option parser
     nfmt.h      format (stringify) numbers
-    nscan.h     convert numeric string to number
+    nuscan.h    convert numeric string to numeric value
     outvec.h    semi-buffered output using writev()
     packet.h    [cruft]
     padlock.h   posix advisory locking
     pidlock.h   lockfile with process id
     pkt.h       tiny packet protocol
+    pollio.h    poll() wrapper with elapsed time
     rlimit.h    resource limits
     sig.h       signal handlers
     sigset.h    operations on sigsets
     sysstr.h    stringify errno and signals
-    tain.h      nano-second precision tai
+    tain.h      nano-second precision tai time
     tx64.h      base64 encoding
     uchar.h     typedef for unsigned char
+    ufunc.h     operations on unsigned integers
     upak.h      portable unsigned integer storage
 
 
@@ -101,7 +107,7 @@ This library is intended to be "portable" among contemporary Un!x
 systems that adhere to generally accepted "posix" standards.  Sigh,
 whatever that means.  In practice this library has been used
 successfully on Linux/glibc, Linux/dietlibc, and NetBSD.  The
-library is very general will probably work on any system that
+library is very general and will probably work on any system that
 supports poll().  It is otherwise designed and implemented to work
 on all the systems described in:
 
@@ -126,6 +132,8 @@ this fine manual:
   The Practice of Programming
   Brian W. Kernighan and Rob Pike
   1999, Addison-Wesley
+
+Sources and documentation may describe this reference as "TPOP/kp".
 
 As much as this code fails to attain the wisdom embodied in this
 slim book, it nevertheless aspires to it.

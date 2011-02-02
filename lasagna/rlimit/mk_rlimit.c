@@ -1,6 +1,6 @@
 /* mk_rlimit.c
 ** generate tables for resource limits defined for platform
-** wcm, 2009.09.17 - 2009.09.18
+** wcm, 2009.09.17 - 2010.12.01
 ** ===
 */
 
@@ -101,10 +101,10 @@ void
 do_rlimit(void)
 {
   size_t  rlimit_items = 0;
-  int     i;
+  size_t  i;
 
   rlimit_items = rlimit_init();
-  fprintf(stderr, "%s: sorted %d items in rlimit table\n", progname, rlimit_items);
+  fprintf(stderr, "%s: sorted %zu items in rlimit table\n", progname, rlimit_items);
 
   printf(
       "/* rlimit_defs.c.in\n"
@@ -113,7 +113,7 @@ do_rlimit(void)
 
   printf(
       "/*\n"
-      "** %d sorted rlimit_def entries in rlimit_defs[] table:\n"
+      "** %zu sorted rlimit_def entries in rlimit_defs[] table:\n"
       "*/\n", rlimit_items);
 
   printf(
@@ -138,6 +138,10 @@ do_rlimit(void)
 int
 main(int argc, char *argv[])
 {
+  /* silence compiler warning unused parameters (nv): */
+  (void)argc;
+  (void)argv;
+
   do_rlimit();
   return 0;
 }
