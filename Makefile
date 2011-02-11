@@ -9,45 +9,45 @@
 #include ./conf.mk
 
 PROJLIBS = \
- ./_lasagna.done \
+ ./_done.lasagna \
 
 PROJAPPS = \
- ./_perpapps.done \
- ./_runtools.done \
+ ./_done.perpapps \
+ ./_done.runtools \
 
 ## default target:
-all: ./_all.done
-./_all.done: $(PROJLIBS) $(PROJAPPS)
+all: ./_done.all
+./_done.all: $(PROJLIBS) $(PROJAPPS)
 	touch $@
 
 ## lasagna:
-lasagna: ./_lasagna.done
-./_lasagna.done: conf.mk
+lasagna: ./_done.lasagna
+./_done.lasagna: conf.mk
 	cd lasagna && $(MAKE)
 	touch $@
 
 ## perp:
-perpapps: ./_perpapps.done
-./_perpapps.done: conf.mk $(PROJLIBS)
+perpapps: ./_done.perpapps
+./_done.perpapps: conf.mk $(PROJLIBS)
 	cd perp && $(MAKE)
 	touch $@
 
 ## runtools:
-runtools: ./_runtools.done
-./_runtools.done: conf.mk $(PROJLIBS)
+runtools: ./_done.runtools
+./_done.runtools: conf.mk $(PROJLIBS)
 	cd runtools && $(MAKE)
 	touch $@
 
 ## misc targets:
 clean:
-	rm -f ./_perpapps.done; cd perp && $(MAKE) clean
-	rm -f ./_runtools.done; cd runtools && $(MAKE) clean	
+	rm -f ./_done.perpapps; cd perp && $(MAKE) clean
+	rm -f ./_done.runtools; cd runtools && $(MAKE) clean	
 
 cleanlib:
-	rm -f ./_lasagna.done; cd lasagna && $(MAKE) clean
+	rm -f ./_done.lasagna; cd lasagna && $(MAKE) clean
 
 cleanall distclean: cleanlib clean
-	rm -f ./_all.done
+	rm -f ./_done.all
 
 
 install: $(PROJAPPS)

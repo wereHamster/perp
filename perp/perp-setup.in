@@ -1,7 +1,7 @@
 #!/bin/sh -e
 # perp: persistent process supervision
 # perp-setup: one-time, post-install configurator for perp
-# wcm, 2009.12.23 - 2011.01.31
+# wcm, 2009.12.23 - 2011.02.09
 # ===
 
 _PROG=$(basename $0)
@@ -79,7 +79,9 @@ rm -Rf ${PERP_BASE}/.control
 ln -s ${PERP_VAR} ${PERP_BASE}/.control
 
 ## exec perpd, options as configured above:
+## (note runlimit usage to accomodate approx 80 services)
 exec \
+  runlimit -o 280 -p 200 \
   perpd ${PERPD_OPTS} ${PERP_BASE}
 
 ### EOF
@@ -158,7 +160,7 @@ if test -f ${_INITTAB} ; then
       cat ${_INITTAB} - > ${_INITTAB}.new << %%
 
 ## perp:
-PB:123456:respawn:@@SBIN@@/perpboot -x ${_BASE}
+PB:12345:respawn:@@SBIN@@/perpboot -x ${_BASE}
 
 ### EOF
 %%

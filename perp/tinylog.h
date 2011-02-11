@@ -1,18 +1,18 @@
 /* tinylog.h
 ** tinylog configuration header
-** wcm, 2008.10.09 - 2011.01.31
+** wcm, 2008.10.09 - 2011.02.09
 ** ===
 */
 #ifndef TINYLOG_H
 #define TINYLOG_H 1
 
 #ifndef TINYLOG_VERSION
-#define TINYLOG_VERSION  "2.00"
+#define TINYLOG_VERSION  "2.01"
 #endif
 
 /* what to name single concurrency lock file: */
 #ifndef TINYLOG_PIDLOCK
-#define TINYLOG_PIDLOCK  "tinylog.lock"
+#define TINYLOG_PIDLOCK  "tinylog.pid"
 #endif
 
 /* where to find gzip executable:

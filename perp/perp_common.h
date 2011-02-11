@@ -1,6 +1,6 @@
 /* perp_common.h
 ** common defines for perp apps
-** wcm, 2008.01.23 - 2011.01.27
+** wcm, 2008.01.23 - 2011.02.09
 ** ===
 */
 #ifndef PERP_COMMON_H
@@ -8,7 +8,7 @@
 
 /* release version string: */
 #ifndef PERP_VERSION
-#define PERP_VERSION "2.00"
+#define PERP_VERSION "2.01"
 #endif
 
 /* default PERP_BASE directory: */
@@ -26,10 +26,10 @@
 */
 #define PERP_BOOT ".boot"
 
-/* perpd lockfile
+/* perpd pid/lockfile
 **   (relative to PERP_CONTROL):
 */
-#define PERPD_PIDLOCK  "perpd.lock"
+#define PERPD_PIDLOCK  "perpd.pid"
 
 /* perpd socket
 **   (relative to PERP_CONTROL):

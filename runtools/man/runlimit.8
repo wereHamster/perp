@@ -1,7 +1,7 @@
 .\" runlimit.8
-.\" wcm, 2009.12.14 - 2009.12.15
+.\" wcm, 2009.12.14 - 2011.02.08
 .\" ===
-.TH runlimit 8 "February 2011" "runtools-2.00" "runtools"
+.TH runlimit 8 "February 2011" "runtools-2.01" "runtools"
 .SH NAME
 runlimit \- run a program with new resource limits
 .SH SYNOPSIS
@@ -38,7 +38,61 @@ to setup the corresponding soft resource limit.
 Normally the argument to each option is a positive decimal integer.
 An argument of
 .RB ` = '
+or
+.RB `^'
 may be given to set the soft limit equal to the current hard limit.
+Any resource limit specified that is greater than its hard limit
+is truncated to the hard limit.
+.TP
+.B \-E
+Environment.
+Resource parameters are scanned from the current environment in the form
+.IR r = v ,
+where
+.I r
+is any RLIMIT_* resource name as defined for
+.BR getrlimit (2)
+and described below,
+and
+.I v
+is the value used to set the corresponding resource limit.
+The
+.B \-E
+option may be combined with
+.B \-F
+or other options.
+Any resource limit set with a command-line option,
+or read from a file with the
+.B \-F
+option,
+takes precedence over the environment.
+.TP
+.B \-F file
+File-defined.
+Resource limits are taken from
+.IR file ,
+a plain-text file with one or more non-empty lines of the form
+.IR r = v ,
+where
+.I r
+is any RLIMIT_* resource name as defined for
+.BR getrlimit (2)
+and described below,
+and
+.I v
+is the value used to set the corresponding resource limit.
+Empty lines and lines beginning with `#' are ignored.
+Leading and trailing whitespace is trimmed from both
+.I r
+and
+.IR v .
+The
+.B \-F
+option may be combined with
+.B \-E
+or other options.
+Any resource limit set with a command-line option
+takes precedence over a file-defined limit.
 .TP
 .B \-a availmem
 Total available memory (in bytes).
@@ -145,6 +199,7 @@ indicating any that are not supported on the host platform.)
 Wayne Marshall, http://b0llix.net/perp/
 .SH SEE ALSO
 .nh
+.BR setrlimit (2),
 .BR runtools_intro (8),
 .BR runargs (8),
 .BR runargv0 (8),

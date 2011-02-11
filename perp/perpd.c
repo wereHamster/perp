@@ -1,7 +1,7 @@
 /* perpd.c
 ** perp: persistent process supervision
 ** perpd 2.0: single process scanner/supervisor/controller
-** wcm, 2010.12.28 - 2011.02.02
+** wcm, 2010.12.28 - 2011.02.11
 ** ===
 */
 
@@ -47,7 +47,7 @@
 
 /* logging variables in perpd scope: */
 const char  *progname = NULL;
-const char   prog_usage[] = "[-hV] [-a secs] [-g gid] [-m mode] [basedir]";
+const char   prog_usage[] = "[-hV] [-a secs] [-g gid] [basedir]";
 const char  *my_pidstr = NULL;
 
 /* other variables available in perpd scope: */
@@ -65,7 +65,6 @@ tain_t    my_when;
 /* options/args: */
 static uint32_t  arg_autoscan = 0;
 static gid_t     arg_gid = (gid_t)-1;
-static mode_t    arg_mode = 0;
 /* signal flags: */
 static int  flag_chld = 0;
 static int  flag_hup = 0;
@@ -259,18 +258,17 @@ perpd_control_init(void)
   fd_pidlock = fd;
 
   /* create listening socket and bind: */
-  fd = domsock_create(PERPD_SOCKET, PERPD_SOCKET_MODE);
+  fd = domsock_create(PERPD_SOCKET, 0700);
   if(fd == -1){
       fatal_syserr("failure bind() on socket ", PERPD_SOCKET);
   }
-  if(arg_mode != 0){
-      if(chmod(PERPD_SOCKET, arg_mode) == -1){
-          fatal_syserr("failure chmod() on socket ", PERPD_SOCKET);
-      }
-  }
   if(arg_gid != (gid_t)-1){
-      if(chown(PERPD_SOCKET, -1, arg_gid) == -1){
+      /* open socket to members of group: */
+      if(chown(PERPD_SOCKET, (uid_t)-1, arg_gid) == -1){
           fatal_syserr("failure chown() on socket ", PERPD_SOCKET);
+      }
+      if(chmod(PERPD_SOCKET, 0770) == -1){
+          fatal_syserr("failure chmod() on socket ", PERPD_SOCKET);
       }
   }
   if(domsock_listen(fd, PERPD_CONNMAX) == -1){
@@ -928,7 +926,7 @@ perpd_mainloop(void)
 int
 main(int argc, char *argv[])
 {
-  nextopt_t      nopt = nextopt_INIT(argc, argv, ":hVa:g:m:");
+  nextopt_t      nopt = nextopt_INIT(argc, argv, ":hVa:g:");
   char           opt;
   uint32_t       u;
   static char    pidbuf[NFMT_SIZE];
@@ -982,16 +980,6 @@ main(int argc, char *argv[])
              }
          }
          arg_gid = grent->gr_gid;
-         break;
-     case 'm':
-         z = nuscan_uint32o(&u, nopt.opt_arg);
-         if(*z != '\0'){
-             fatal_usage("non-numeric/octal argument found for option -", optc, ": ", nopt.opt_arg);
-         }
-         if(u > 0777){
-             fatal_usage("mode argument for option -", optc, " out of range: ", nopt.opt_arg);
-         }
-         arg_mode = (mode_t)u;
          break;
      case ':':
          fatal_usage("missing argument for option -", optc);

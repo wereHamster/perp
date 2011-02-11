@@ -2,7 +2,7 @@
 ** perp: persistent process supervision
 ** perpd 2.0: single process scanner/supervisor/controller
 ** perpd_svdef: perpd subroutines on service definitions
-** wcm, 2010.12.28 - 2011.02.01
+** wcm, 2010.12.28 - 2011.02.07
 ** ===
 */
 
@@ -392,7 +392,8 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
   tain_now(&now);
   tain_assign(&when_ok, &subsv->when_ok);
   if((target == SVRUN_START) && tain_less(&now, &when_ok)){
-          log_warning("setting respawn governor on 'start' target of ", prog[0]);
+          log_warning("setting respawn governor on 'start' target of service ", svdef->name,
+                      " for ", prog[0]);
           tain_minus(&towait, &when_ok, &now);
   }
 
@@ -415,7 +416,8 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
       setsid();
       /* cwd for runscripts is svdir: */
       if(fchdir(svdef->fd_dir) == -1){
-          fatal_syserr("(in child) failure fchdir() to service directory");
+          fatal_syserr("(in child for service ", svdef->name,
+                       "): failure fchdir() to service directory");
       }
       /* setup logpipe: */
       if(svdef->bitflags & SVDEF_FLAG_HASLOG){
@@ -423,8 +425,8 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
               /* set stdout to logpipe: */
               close(1);
               if(dup2(svdef->logpipe[1], 1) != 1){
-                  fatal_syserr("(in child) ",
-                          "failure dup2() on logpipe[1] to logging service");
+                  fatal_syserr("(in child for service ", svdef->name,
+                               "): failure dup2() on logpipe[1] to logging service");
               }
           }
           if((which == SUBSV_LOG) && (target == SVRUN_START)){
@@ -433,8 +435,8 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
               */
               close(0);
               if(dup2(svdef->logpipe[0], 0) != 0){
-                  fatal_syserr("(in child) ",
-                          "failure dup2() on logpipe[0] for logging service");
+                  fatal_syserr("(in child for service ", svdef->name,
+                               "): failure dup2() on logpipe[0] for logging service");
               }
           }
           close(svdef->logpipe[0]);
@@ -444,8 +446,8 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
       for(i = 3; i < 1024; ++i) close(i);
       /* set PERP_BASE in the environment: */
       if(newenv_set("PERP_BASE", basedir) == -1){
-          fatal_syserr("(in child) ",
-                       "failure setting PERP_BASE environment for ",
+          fatal_syserr("(in child for service ", svdef->name,
+                       "): failure setting PERP_BASE environment for ",
                        prog[0], " ", prog[1]);
       }
       /* respawn governor: */
@@ -462,7 +464,8 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
       /* go forth my child: */
       newenv_run(prog, environ);
       /* nuts, exec failed: */
-      fatal_syserr("(in child) failure execve()");
+      fatal_syserr("(in child for service ", svdef->name,
+                   "):  failure execve()");
   }
 
   /* parent: */

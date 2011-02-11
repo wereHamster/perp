@@ -1,12 +1,14 @@
 .\" perpd.8
-.\" wcm, 2008.02.26 - 2011.02.01
+.\" wcm, 2008.02.26 - 2011.02.09
 .\" ===
-.TH perpd 8 "February 2011"  "perp-2.00"  "persistent process supervision"
+.TH perpd 8 "February 2011"  "perp-2.01"  "persistent process supervision"
 .SH NAME
 perpd \- persistent process scanner/supervisor/controller
 .SH SYNOPSIS
 .B perpd [\-hV] [\-a
 .I secs
+.B ] [\-g
+.I gid
 .B ] [
 .I basedir
 .B ]
@@ -337,6 +339,26 @@ imitating the behavior of daemontools
 .BR svscan (8).
 An argument of 0 disables autoscanning.
 .TP
+.B \-g gid
+Socket gid.
+Normally the control socket is created with the same ownership
+as the
+.B perpd
+process and with an explicit access mode 0700.
+The
+.B -g
+option sets the group ownership on the control socket according to the
+.IR gid
+argument and changes the access mode on the socket to 0770.
+The
+.I gid
+argument may be given as either a numeric group id
+or as a group name.
+Note that the designated group will also require
+access to the
+.I .control
+directory (or related symlink) in which the control socket is installed.
+.TP
 .B \-h
 Help.
 Display a brief help message on stderr and exit.
@@ -473,7 +495,7 @@ it will attempt to make the directory that
 points to.
 .RE
 .PP
-.I /PERP_BASE/.control/perpd.lock
+.I /PERP_BASE/.control/perpd.pid
 .RS
 The lock file used by
 .B perpd
@@ -574,7 +596,8 @@ The runtime environment of the
 process should be configured to permit sufficient child processes
 (up to 2 per service),
 and open file descriptors
-(up to 3 per service)
+(up to 3 per service, plus 7 requisite,
+plus a number for concurrent client connections, usually 20)
 to handle the actual number of services to be installed and activated.
 See
 .BR getrlimit (2),

@@ -1,6 +1,6 @@
 /* pollio.h
 ** pollio: lasagna wrapper for poll()
-** wcm, 2010.12.29 - 2010.12.30
+** wcm, 2010.12.29 - 2011.02.09
 ** ===
 */
 #ifndef POLLIO_H
