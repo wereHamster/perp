@@ -1,7 +1,7 @@
 /* perpd.c
 ** perp: persistent process supervision
 ** perpd 2.0: single process scanner/supervisor/controller
-** wcm, 2010.12.28 - 2011.02.11
+** wcm, 2010.12.28 - 2011.02.17
 ** ===
 */
 
@@ -863,10 +863,6 @@ perpd_mainloop(void)
       ** check client sockets:
       */
 
-      if(last_nconns != nconns){
-          log_info("currently active client connections: ", nfmt_uint32(nbuf, (uint32_t)nconns));
-      }
-
       for(i = 0; i < nconns; ++i){
           if((connfd = clients[i].connfd) == -1){
               continue;
@@ -874,7 +870,9 @@ perpd_mainloop(void)
           if(nready == 0) break;
           if(pollv[2 + i].revents & (POLLERR | POLLHUP | POLLNVAL)){
               --nready;
-              log_warning("error on client socket");
+              if(pollv[2 + i].revents & (POLLERR | POLLNVAL)){
+                  log_warning("error on client socket");
+              }
               perpd_conn_close(&clients[i]);
               continue;
           }else if(pollv[2 + i].revents & POLLIN){

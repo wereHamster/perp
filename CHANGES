@@ -1,7 +1,11 @@
 # CHANGES
 # perp release history and changelog
-# wcm, 2010.02.17 - 2011.02.11
+# wcm, 2010.02.17 - 2011.02.22
 # ===
+
+perp-2.02 (2011.02.22):
+ * perpd:
+   - eliminated some spurious/redundant client connection logging
 
 perp-2.01 (2011.02.11):
  * perp-setup:
