@@ -1,7 +1,7 @@
 .\" runpause.8
-.\" wcm, 2009.12.11 - 2011.02.01
+.\" wcm, 2009.12.11 - 2011.03.11
 .\" ===
-.TH runpause 8 "February 2011" "runtools-2.02" "runtools"
+.TH runpause 8 "March 2011" "runtools-2.03" "runtools"
 .SH NAME
 runpause \- run a program after a specified delay
 .SH SYNOPSIS
@@ -76,7 +76,7 @@ if test ${1} = 'start' ; then
   exec runpause -L network 0 /bin/true
 fi
 
-if test ${2} = 'reset' ; then
+if test ${1} = 'reset' ; then
   # take down network and whatever depends on it:
   echo "resetting network ..."
   ...

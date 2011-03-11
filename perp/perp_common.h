@@ -1,6 +1,6 @@
 /* perp_common.h
 ** common defines for perp apps
-** wcm, 2008.01.23 - 2011.02.22
+** wcm, 2008.01.23 - 2011.03.11
 ** ===
 */
 #ifndef PERP_COMMON_H
@@ -8,7 +8,7 @@
 
 /* release version string: */
 #ifndef PERP_VERSION
-#define PERP_VERSION "2.02"
+#define PERP_VERSION "2.03"
 #endif
 
 /* default PERP_BASE directory: */

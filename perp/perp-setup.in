@@ -1,7 +1,7 @@
 #!/bin/sh -e
 # perp: persistent process supervision
 # perp-setup: one-time, post-install configurator for perp
-# wcm, 2009.12.23 - 2011.02.09
+# wcm, 2009.12.23 - 2011.03.11
 # ===
 
 _PROG=$(basename $0)
@@ -51,9 +51,19 @@ fi
 
 _mesg "configuring perpboot directory in ${DESTDIR}${_BASE}/.boot ..."
 
-for f in rc.log rc.perp ; do
+for f in rc.log rc.perp rlimit.conf ; do
   rm -f ${DESTDIR}${_BASE}/.boot/${f}.new
 done
+
+cat - > ${DESTDIR}${_BASE}/.boot/rlimit.conf.new << "%%"
+# rlimit.conf
+# runlimit setup for perpd
+# ===
+## set RLIMIT_NOFILE and RLIMIT_NPROC to hard limit:
+RLIMIT_NOFILE=^
+RLIMIT_NPROC=^
+### EOF
+%%
 
 cat - > ${DESTDIR}${_BASE}/.boot/rc.perp.new << "%%"
 #!/bin/sh
@@ -79,9 +89,9 @@ rm -Rf ${PERP_BASE}/.control
 ln -s ${PERP_VAR} ${PERP_BASE}/.control
 
 ## exec perpd, options as configured above:
-## (note runlimit usage to accomodate approx 80 services)
+## (runlimit configured to uncap RLIMIT_NOFILE, RLIMIT_NPROC)
 exec \
-  runlimit -o 280 -p 200 \
+  runlimit -F ./rlimit.conf \
   perpd ${PERPD_OPTS} ${PERP_BASE}
 
 ### EOF
@@ -127,6 +137,13 @@ exec \
 
 ### EOF
 %%
+
+for f in rlimit.conf ; do
+  if ! test -f ${DESTDIR}${_BASE}/.boot/${f} ; then
+    mv ${DESTDIR}${_BASE}/.boot/${f}.new ${DESTDIR}${_BASE}/.boot/${f}
+    chmod 0644 ${DESTDIR}${_BASE}/.boot/${f}
+  fi
+done
 
 for f in rc.perp rc.log ; do
   if ! test -f ${DESTDIR}${_BASE}/.boot/${f} ; then

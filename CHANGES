@@ -1,7 +1,12 @@
 # CHANGES
 # perp release history and changelog
-# wcm, 2010.02.17 - 2011.02.22
+# wcm, 2010.02.17 - 2011.03.11
 # ===
+
+perp-2.03 (2011.03.11):
+ * perp-setup:
+   - in rc.perp boot script for perpd(8), setup default runlimit(8)
+     configuration to hard limits for RLIMIT_NPROC, RLIMIT_NOFILE
 
 perp-2.02 (2011.02.22):
  * perpd:

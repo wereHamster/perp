@@ -1,13 +1,13 @@
 /* tinylog.h
 ** tinylog configuration header
-** wcm, 2008.10.09 - 2011.02.22
+** wcm, 2008.10.09 - 2011.03.11
 ** ===
 */
 #ifndef TINYLOG_H
 #define TINYLOG_H 1
 
 #ifndef TINYLOG_VERSION
-#define TINYLOG_VERSION  "2.02"
+#define TINYLOG_VERSION  "2.03"
 #endif
 
 /* what to name single concurrency lock file: */
