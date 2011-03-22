@@ -7,7 +7,7 @@
 #define TINYLOG_H 1
 
 #ifndef TINYLOG_VERSION
-#define TINYLOG_VERSION  "2.03"
+#define TINYLOG_VERSION  "2.04"
 #endif
 
 /* what to name single concurrency lock file: */

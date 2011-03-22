@@ -2,7 +2,7 @@
 ** perp: perpsistent process supervision
 ** perpd 2.0: single process scanner/supervisor/controller
 ** perpd.h: header file for perpd
-** wcm, 2011.01.12 - 2011.02.11
+** wcm, 2011.01.12 - 2011.03.21
 ** ===
 */
 #ifndef PERPD_H
@@ -59,6 +59,11 @@
 /* maximum number of conncurrent perpd client connections: */
 #ifndef PERPD_CONNMAX
 #define PERPD_CONNMAX  20
+#endif
+
+/* timeout for perpd client connection (in seconds): */
+#ifndef PERPD_CONNSECS
+#define PERPD_CONNSECS  8
 #endif
 
 /*

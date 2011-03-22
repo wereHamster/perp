@@ -1,12 +1,14 @@
 .\" perp-setup.8
-.\" wcm, 2009.12.23 - 2011.02.09
+.\" wcm, 2009.12.23 - 2011.03.21
 .\" ===
-.TH perp-setup 8 "March 2011" "perp-2.03" "persistent process supervision"
+.TH perp-setup 8 "March 2011" "perp-2.04" "persistent process supervision"
 .SH NAME
 perp-setup \- initialize a perp installation
 .SH SYNOPSIS
 .B perp-setup [
 .I basedir
+.B ] [
+.I ctldir
 .B ]
 .SH DESCRIPTION
 .B perp-setup
@@ -15,7 +17,7 @@ automate the setup of a
 .B perp
 system.
 It is usually run only one-time,
-after the first installation of the
+after the installation of the
 .B perp
 package.
 .PP
@@ -41,7 +43,7 @@ creates the directories
 and
 .IR basedir/.boot
 if they don't already exist.
-It then installs the
+It then installs the standard
 .BR perpboot (8)
 scripts
 .I rc.log
@@ -54,9 +56,37 @@ and sets them executable.
 either of these scripts already exists,
 .B perp-setup
 leaves them alone and installs the new versions for review,
-non-executable and with a
+non-executable,
+and with a
 .I .new
 extension.)
+.PP
+.B perp-setup
+then inspects the installation for the existence of
+.IR basedir/.control .
+If it does not exist,
+.B perp-setup
+configures
+.I basedir/.control
+as a symlink to the directory given by the argument
+.IR ctldir .
+If the
+.I ctldir
+argument is not specified,
+.B perp-setup
+will use the environmental variable PERP_CTL.
+If PERP_CTL is not set or empty,
+.B perp-setup
+will use a default value for
+.IR ctrldir ,
+normally
+.IR /var/run/perp .
+Note that the
+.B perp-setup
+utility does not itself create the
+.I ctldir
+directory,
+only the symlink.
 .PP
 .B perp-setup
 then checks for a sysv-compatible
@@ -135,16 +165,6 @@ the administrator should look over the boot scripts and modify them if/as necess
 the specific installation.
 .PP
 The default
-.I rc.perp
-script installed by
-.B perp-setup
-initializes the
-.I basedir/.control
-symlink and
-configures runtime control files to reside in
-.IR /var/run/perp .
-The adminstrator may change this by editing the script header directly.
-The default
 .I rc.log
 script installed by
 .B perp-setup
@@ -194,7 +214,7 @@ to start up
 .PP
 .IR /etc/perp/.control " [\-\-> " /var/run/perp ]
 .RS
-Directory (normally a symlink) containing runtime control files.
+Directory (normally a symlink) for runtime control files.
 .RE
 .PP
 .I /etc/inittab
@@ -255,6 +275,18 @@ If this is not defined or empty,
 uses a built-in default, normally
 .IR /etc/perp .
 .RE
+.PP
+PERP_CTL
+.RS
+If no
+.I ctldir
+argument is given at the command-line on startup,
+.B perp-setup
+checks for a value defined by PERP_CTL.
+If this is not defined or empty,
+.B perp-setup
+uses a built-in default, normall
+.IR /var/run/perp .
 .SH AUTHOR
 Wayne Marshall, http://b0llix.net/perp/
 .SH SEE ALSO

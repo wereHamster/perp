@@ -8,7 +8,7 @@
 
 /* release version string: */
 #ifndef PERP_VERSION
-#define PERP_VERSION "2.03"
+#define PERP_VERSION "2.04"
 #endif
 
 /* default PERP_BASE directory: */

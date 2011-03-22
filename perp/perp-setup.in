@@ -1,19 +1,23 @@
 #!/bin/sh -e
 # perp: persistent process supervision
 # perp-setup: one-time, post-install configurator for perp
-# wcm, 2009.12.23 - 2011.03.11
+# wcm, 2009.12.23 - 2011.03.21
 # ===
+## basename:
+_PROG=${0##*/}
+_PID=$$
 
-_PROG=$(basename $0)
-
-_BASE=""
 _BASE_DEFAULT=/etc/perp
+_CTL_DEFAULT=/var/run/perp
+
+_BASE=${PERP_BASE:-${_BASE_DEFAULT}}
+_CTL=${PERP_CTL:-${_CTL_DEFAULT}}
 
 _INITTAB=/etc/inittab
 _RCLOCAL=/etc/rc.local
 
 _mesg() {
-  echo "${_PROG}($$): $1" >/dev/stderr  
+  echo "${_PROG}(${_PID}): $1" >/dev/stderr  
 }
 
 _fail() {
@@ -26,13 +30,12 @@ _done() {
   exit 0
 }
 
-
+## command-line override for _BASE, _CTL:
 if test $# -gt 0 ; then
-  _BASE=${1}
-elif test "$PERP_BASE" ; then
-  _BASE=$PERP_BASE
-else
-  _BASE=${_BASE_DEFAULT}
+  _BASE=${1:-${_BASE}}
+fi
+if test $# -gt 1 ; then
+  _CTL=${2:-${_CTL}}
 fi
 
 if test 'X' != ${DESTDIR}'X' ; then
@@ -49,12 +52,20 @@ if ! test -d ${DESTDIR}${_BASE}/.boot ; then
   mkdir -p ${DESTDIR}${_BASE}/.boot || _fail "unable to create .boot directory"
 fi
 
+if ! test -e ${DESTDIR}${_BASE}/.control ; then
+  ## create symlink to control directory (possibly dangling):
+  ln -s ${DESTDIR}${_BASE}/.control ${_CTL} || \
+    _fail "unable to create symlink for .control directory"
+fi
+
 _mesg "configuring perpboot directory in ${DESTDIR}${_BASE}/.boot ..."
 
+## clean any pre-existing *.new files:
 for f in rc.log rc.perp rlimit.conf ; do
   rm -f ${DESTDIR}${_BASE}/.boot/${f}.new
 done
 
+## rlimit.conf:
 cat - > ${DESTDIR}${_BASE}/.boot/rlimit.conf.new << "%%"
 # rlimit.conf
 # runlimit setup for perpd
@@ -65,38 +76,31 @@ RLIMIT_NPROC=^
 ### EOF
 %%
 
+## rc.perp:
 cat - > ${DESTDIR}${_BASE}/.boot/rc.perp.new << "%%"
-#!/bin/sh
+#!/bin/sh -e
 # rc.perp: perpd startup script for perpboot
 # ===
 
 ### --- configure ---
-PERP_VAR=/var/run/perp
 PERPD_OPTS="-a6"
-
 
 ### --- script ---
 
-## note: perpboot defines PERP_BASE on startup
-
-## clean setup for runtime control files:
-rm -Rf ${PERP_VAR}
-mkdir -p ${PERP_VAR}
-chmod 0700 ${PERP_VAR}
-
-## clean symlink:
-rm -Rf ${PERP_BASE}/.control
-ln -s ${PERP_VAR} ${PERP_BASE}/.control
-
-## exec perpd, options as configured above:
-## (runlimit configured to uncap RLIMIT_NOFILE, RLIMIT_NPROC)
+## exec perpd:
+##   * options as configured above
+##   * runchoom(8) abate linux oom-killer
+##   * runlimit(8) configured in ./rlimit.conf
+##   * PERP_BASE defined in environment by perpboot(8)
 exec \
+  runchoom \
   runlimit -F ./rlimit.conf \
   perpd ${PERPD_OPTS} ${PERP_BASE}
 
 ### EOF
 %%
 
+## rc.log:
 cat - > ${DESTDIR}${_BASE}/.boot/rc.log.new << "%%"
 #!/bin/sh
 # rc.log: perpd logger script for perpboot
@@ -109,7 +113,6 @@ LOGDIR=/var/log/perpd
 LOGOPTS="-k 8 -s 100000 -t -z"
 ## suggested:
 LOGUSER=tinylog
-
 
 ### --- script ---
 
@@ -217,7 +220,8 @@ fi
 fi
 
 
-_fail "uh oh, neither ${_INITTAB} nor ${_RCLOCAL} were found on your system!"
+_mesg "uh oh, neither ${_INITTAB} nor ${_RCLOCAL} were found on your system!"
+_mesg "this system will require manual startup configuration for perpd(8)/perpboot(8)"
 exit 1
 
 ### EOF

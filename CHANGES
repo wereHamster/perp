@@ -1,7 +1,19 @@
 # CHANGES
 # perp release history and changelog
-# wcm, 2010.02.17 - 2011.03.11
+# wcm, 2010.02.17 - 2011.03.22
 # ===
+
+perp-2.04 (2011.03.22):
+ * perphup:
+   - added option -t, trigger perpd shutdown
+ * perpboot:
+   - waitpid() for deux[1] on SIGTERM
+ * perp-setup:
+   - added arg for ctldir
+   - configure symlink /etc/perp/.control --> ctldir
+   - configure rc.perp bootscript for runchoom(8)
+ * runchoom:
+   - new, utility for linux "oom killer" abatement
 
 perp-2.03 (2011.03.11):
  * perp-setup:

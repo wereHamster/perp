@@ -2,7 +2,7 @@
 ** perp: persistent process supervision
 ** perpd 2.0:  single process scanner/supervisor/controller
 ** perpd_conn:  ipc routines for perpd
-** wcm, 2010.12.28 - 2011.02.02
+** wcm, 2010.12.28 - 2011.03.18
 ** ===
 */
 
@@ -442,12 +442,11 @@ perpd_conn_start(struct perpd_conn *client, int connfd)
 void
 perpd_conn_checkstale(struct perpd_conn *client, struct tain *now)
 {
-  struct tain diff, max_diff;
+  tain_t  diff, max_diff = tain_INIT(PERPD_CONNSECS, 0);
 
   /* assumes clock is strictly monotonic! */
   if(tain_less(&client->stamp, now)){
       tain_minus(&diff, now, &client->stamp);
-      tain_LOAD(&max_diff, 30, 0);
       if(tain_less(&max_diff, &diff)){
           /* close stale connection: */
           log_warning("closing stale client connection");

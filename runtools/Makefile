@@ -1,7 +1,7 @@
 # Makefile
 # makfile for runtools:
 # utilities for perpetrate runscripts
-# wcm, 2008.01.04 - 2011.02.01
+# wcm, 2008.01.04 - 2011.03.21
 # ===
 
 # build configuration:
@@ -10,8 +10,9 @@ CFLAGS += -I../lasagna
 LDFLAGS += -L../lasagna -lasagna
 
 RUNTOOLS = \
-  runargv0 \
   runargs \
+  runargv0 \
+  runchoom \
   rundetach \
   rundeux \
   runenv \
@@ -39,6 +40,9 @@ runargs: runargs.c runtools_common.h
 
 runargv0: runargv0.c runtools_common.h
 	$(CC) $(CFLAGS) -o $@ runargv0.c $(LDFLAGS)
+
+runchoom: runchoom.c runtools_common.h
+	$(CC) $(CFLAGS) -o $@ runchoom.c $(LDFLAGS)
 
 rundetach: rundetach.c runtools_common.h
 	$(CC) $(CFLAGS) -o $@ rundetach.c $(LDFLAGS)

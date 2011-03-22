@@ -1,13 +1,13 @@
 .\" perphup.8
-.\" wcm, 2009.12.01 - 2011.02.01
+.\" wcm, 2009.12.01 - 2011.03.18
 .\" ===
-.TH perphup 8 "March 2011" "perp-2.03" "persistent process supervision"
+.TH perphup 8 "March 2011" "perp-2.04" "persistent process supervision"
 .SH NAME
 perphup \- trigger a
 .BR perpd (8)
 rescan
 .SH SYNOPSIS
-.B perphup [\-hV] [-q] [
+.B perphup [\-hV] [\-q] [\-t] [
 .I basedir
 .B ]
 .SH DESCRIPTION
@@ -51,6 +51,20 @@ The
 .B \-q
 option may be used to suppress this message.
 .TP
+.B \-t
+Term.
+Normally
+.B perphup
+sends a SIGHUP signal to the
+.BR perpd (8)
+process to trigger a rescan.
+The
+.B \-t
+option is used to send a SIGTERM instead,
+and triggers the
+.BR perpd (8)
+shutdown sequence.
+.TP
 .B \-V
 Version.
 Print the version number to stderr and exit.
@@ -62,7 +76,7 @@ exits with the following values:
 Success.
 An active
 .BR perpd (8)
-process was found and triggered with SIGHUP.
+process was found and triggered.
 .TP
 100
 Usage error.

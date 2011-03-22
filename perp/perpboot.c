@@ -5,7 +5,7 @@
 **   - exec and supervise perpd + logger
 **   - a lightweight process supervisor for perpd itself
 ** (see also rundeux(8) in runtools)
-** wcm, 2009.10.04 - 2011.01.31
+** wcm, 2009.10.04 - 2011.03.22
 ** ===
 */
 
@@ -271,20 +271,18 @@ void
 child_wait(void)
 {
   pid_t  pid;
-  int    i;
-  int    wstat;
 
-  while((pid = waitpid(-1, &wstat, WNOHANG)) > 0){
-      for(i = 0; i < 2; ++i){
-          if(pid == deux[i].pid){
-              deux[i].pid = 0;
-          }
+  while((pid = waitpid(-1, NULL, WNOHANG)) > 0){
+      if(pid == deux[0].pid){
+          deux[0].pid = 0;
+      }else if(pid == deux[1].pid){
+          deux[1].pid = 0;
       }
   }
 
   return;
 }
-             
+
 
 static
 void
@@ -319,13 +317,17 @@ main_loop(void)
       sigset_block(&my_sigset);
 
       /* consume sigpipe: */
-      while(read(my_sigpipe[0], &c, 1) == 1)
-          ;
+      while(read(my_sigpipe[0], &c, 1) == 1){/*empty*/ ;}
 
       /* consume dead children: */
       child_wait();
   }
 
+  /* here on SIGTERM: */
+  if(deux[1].pid){
+      /* harvest deux[1]: */
+      waitpid(deux[1].pid, NULL, 0);
+  } 
   if(deux[0].pid){
       /* logger should exit on eof: */
       close(my_logpipe[1]);
@@ -386,7 +388,7 @@ main(int argc, char *argv[])
       switch(pid){
       case -1: fatal_syserr("failure fork(): unable to detach"); break;
       case 0:
-          /* child continues daemonized in new session, cwd "/": */
+          /* child continues daemonized in new session: */
           setsid(); break;
       default:
           /* parent exits: */

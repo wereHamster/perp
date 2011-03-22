@@ -1,7 +1,7 @@
 .\" runtools_intro.8
-.\" wcm, 2009.12.15 - 2011.02.01
+.\" wcm, 2009.12.15 - 2011.03.18
 .\" ===
-.TH runtools_intro 8 "March 2011" "runtools-2.03" "runtools"
+.TH runtools_intro 8 "March 2011" "runtools-2.04" "runtools"
 .SH NAME
 runtools_intro \- overview of the
 .B runtools
@@ -25,6 +25,9 @@ Runs a program with arguments specified in an
 .TP
 .BR runargv0 (8)
 Runs a program with an alias in place of the 0th argument.
+.TP
+.BR runchoom (8)
+Runs a program with linux ``oom killer'' abatement.
 .TP
 .BR rundetach (8)
 Runs a program in the background,
@@ -111,7 +114,7 @@ syntax:
 if test ${1} = 'start' ; then
   exec runenv -i ./envfile \\
       runlimit -c 0 -f 2000000 -m 30000000 \\
-          runuid -fooman \\
+          runuid fooman \\
             /usr/sbin/foo -f
 fi
 .fi
@@ -186,6 +189,7 @@ Wayne Marshall, http://b0llix.net/perp/
 .nh
 .BR runargs (8),
 .BR runargv0 (8),
+.BR runchoom (8),
 .BR rundetach (8),
 .BR rundeux (8),
 .BR runenv (8),

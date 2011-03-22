@@ -2,7 +2,7 @@
 ** perp: persistent process supervision
 ** perp 2.0: single process scanner/supervisor/controller
 ** perphup: trigger rescan in perpd
-** wcm, 2009.11.11 - 2011.01.24
+** wcm, 2009.11.11 - 2011.03.18
 ** ===
 */
 
@@ -29,17 +29,18 @@
 
 /* logging variables in scope: */
 static const char *progname = NULL;
-static const char  prog_usage[] = "[-hV] [-q] [basedir]";
+static const char  prog_usage[] = "[-hV] [-q] [-t] [basedir]";
 
 /* option variables in scope: */
 /* "quiet", !opq_q == verbose, default is verbose: */
 static int opt_q = 0;
-
+/* send sigterm instead of sighup: */
+static int opt_t = 0;
 
 int
 main(int argc, char *argv[])
 {
-  nextopt_t    nopt = nextopt_INIT(argc, argv, ":hVq");
+  nextopt_t    nopt = nextopt_INIT(argc, argv, ":hVqt");
   char         opt;
   const char  *basedir = NULL;
   char         pathbuf[256];
@@ -54,6 +55,7 @@ main(int argc, char *argv[])
       case 'h': usage(); die(0); break;
       case 'V': version(); die(0); break;
       case 'q': ++opt_q; break;
+      case 't': ++opt_t; break;
       case ':':
           fatal_usage("missing argument for option -", optc);
           break;
@@ -99,15 +101,19 @@ main(int argc, char *argv[])
       fatal(111, "perpd not running on ", basedir, ": no lock active on ", pathbuf);
   }
  
-  if(kill(lockpid, SIGHUP) == -1){
-      fatal_syserr("failure kill() on SIGHUP to perpd pid ",
+  if(kill(lockpid, opt_t ? SIGTERM : SIGHUP) == -1){
+      fatal_syserr("failure kill() on ", opt_t ? "SIGTERM" : "SIGHUP" , " to perpd pid ",
                    nfmt_uint32(nbuf, (uint32_t)lockpid),
                    "running on ", basedir);
   }
 
   /* success: */
   if(!opt_q){
-      eputs(progname, ": perpd rescan triggered on ", basedir);
+      if(!opt_t){
+          eputs(progname, ": perpd rescan triggered on ", basedir);
+      }else{
+          eputs(progname, ": SIGTERM for perpd on ", basedir);
+      }
   }
 
   die(0);

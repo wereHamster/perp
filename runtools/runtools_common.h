@@ -14,7 +14,7 @@
 
 /* release version string: */
 #ifndef RUNTOOLS_VERSION
-#define RUNTOOLS_VERSION "2.03"
+#define RUNTOOLS_VERSION "2.04"
 #endif
 
 
