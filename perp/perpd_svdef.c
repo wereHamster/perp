@@ -340,6 +340,7 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
   tain_t         now, when_ok;
   tain_t         towait = tain_INIT(0,0);
   pid_t          pid;
+  int            wstat;
   int            i;
 
   /* insanity checks: */
@@ -358,6 +359,7 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
   case SVRUN_RESET: subsv->bitflags |= SUBSV_FLAG_ISRESET; break;
   default: subsv->bitflags &= ~SUBSV_FLAG_ISRESET; break;
   }
+  wstat = subsv->wstat;
   subsv->pid = 0;
   subsv->wstat = 0;
   subsv->bitflags &= ~SUBSV_FLAG_FAILING;
@@ -370,8 +372,6 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
 
   /* additional args if running "reset": */
   if(target == SVRUN_RESET){
-      int  wstat = subsv->wstat;
-
       if(WIFEXITED(wstat)){
           char  nstr[NFMT_SIZE];
           prog[3] = "exit";
