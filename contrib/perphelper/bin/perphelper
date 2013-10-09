@@ -1,0 +1,349 @@
+#!/bin/bash
+
+##
+## Open configuration file and establish base script vars
+##
+# get the absolute path of the executable
+#   http://stackoverflow.com/a/697552
+SELF_PATH=$(cd -P -- "$(dirname -- "$0")" && pwd -P) && SELF_PATH=$SELF_PATH/$(basename -- "$0")
+while [ -h $SELF_PATH ]; do
+    # 1) cd to directory of the symlink
+    # 2) cd to the directory of where the symlink points
+    # 3) get the pwd
+    # 4) append the basename
+    DIR=$(dirname -- "$SELF_PATH")
+    SYM=$(readlink $SELF_PATH)
+    SELF_PATH=$(cd $DIR && cd $(dirname -- "$SYM") && pwd)/$(basename -- "$SYM")
+done
+
+baseprog=$(basename $SELF_PATH)
+basepath=$(dirname $SELF_PATH)
+source "$basepath/../config/perphelper.conf"
+
+function make_required_directory
+{
+    echo "Required directory missing: $1  ...creating it as needed"
+    mkdir -p "$1"
+}
+
+function make_service_directory
+{
+    echo "Making log service directory: $1"
+    mkdir -p "$1"
+}
+
+## Create paths if they don't exist
+for perp_path in $PERP_SERVICE_LOG $PERP_SERVICE_ACTIVE_PATH $PERP_SERVICE_AVAILABLE_PATH ; do
+  if [ ! -d $perp_path ]; then
+    make_required_directory $perp_path
+  fi
+done
+
+## Begin
+function helptxt
+{
+    printf $'usage: perphelper ACTION SERVICE\n
+where:
+\tACTION is one of the choices below,
+\tSERVICE is the name of the service that the action will impact on\n
+Action: \t Description:\n
+create \t\t create a new service template
+register \t register an available service to become active
+unregister \t unregister an active service
+list-active \t list active services monitored by \'perpd\'
+list-available \t list available services
+conf \t\t display path configuration parameters in '$0'.conf'
+}
+
+
+## action variables
+display_help=0
+action_type=$1
+service_name=""
+errormsg=""
+
+case "$1" in
+  create)
+    service_name=$2
+  ;;
+  register)
+    service_name=$2
+  ;;
+  unregister)
+    service_name=$2
+  ;;
+  list-active|list-available|conf)
+  ;;
+  *)
+    errormsg="ERROR: Unknown option '$1'"
+    display_help=1
+esac
+
+if [ "$action_type" == "conf" ]; then
+  ## Display configured paths
+  echo
+  echo "=== 'perphelper' path configuration ==="
+  echo
+  echo "Base Paths"
+  printf "execution:\t"$PERP_EXEC_PATH" \n"
+  printf "service base:\t$PERP_SERVICE_BASE_PATH \n"
+  echo
+  echo "Service Paths"
+  printf "active services:\t$PERP_SERVICE_ACTIVE_PATH \n"
+  printf "available services:\t$PERP_SERVICE_AVAILABLE_PATH \n"
+  echo
+  exit
+fi
+
+action_test=$(echo $action_type | cut -d '-' -f1)
+if [ ${#action_type} -eq 0 ]; then
+    errormsg="ERROR: Must specify an ACTION. Look above to see what options are available"
+    display_help=1
+fi
+
+if [ "$action_type" != "" ] && [ "$action_test" != "list" ] && [ ${#service_name} -eq 0 ] ; then
+    errormsg="ERROR: service name required for action: '$action_type'"
+    display_help=1
+fi
+
+## Help display
+if [ $display_help -eq 1 ]; then
+  echo
+  echo "=== 'perphelper' help ==="
+  helptxt
+  echo
+
+  if [ ${#errormsg} -gt 0 ]; then
+    echo
+    echo $errormsg
+    echo
+  fi
+  exit
+fi
+
+## START list actions
+if [ "$action_test" == "list" ]; then
+  output=""
+
+  echo
+  ## List available services
+  if [ "$action_type" == "list-available" ]; then
+    if [ ! -d $PERP_SERVICE_AVAILABLE_PATH ]; then
+      make_service_directory $PERP_SERVICE_AVAILABLE_PATH
+    fi
+
+    output=$(ls -1 $PERP_SERVICE_AVAILABLE_PATH)
+    echo "Available:"
+  fi
+
+  ## List active services
+  if [ $action_type == "list-active" ]; then
+    if [ ! -d $PERP_SERVICE_ACTIVE_PATH ]; then
+        make_service_directory $PERP_SERVICE_ACTIVE_PATH
+    fi
+
+    output=$(ls -1 $PERP_SERVICE_ACTIVE_PATH)
+    printf "Active:\n"
+  fi
+
+  if [ ${#output} == 0 ]; then
+    printf "\tNo services to display"
+  else
+    for m in $output; do
+      printf "\t$m"
+    done
+  fi
+  echo
+  echo
+
+  exit
+fi
+## END list actions
+
+
+## =============================
+## START service actions
+SVC_AV_PATH="$PERP_SERVICE_AVAILABLE_PATH/$service_name"
+
+
+## START create section
+if [ $action_type == "create" ]; then
+
+    # exit if service is already available
+    if [ -d $SVC_AV_PATH ]; then
+      echo
+      echo "service by name of '$service_name' already exists!"
+      echo "...exiting"
+      echo
+      exit
+    fi
+
+    echo
+    echo "Generating path to service: $SVC_AV_PATH"
+
+    service_log_path="$PERP_SERVICE_LOG/$service_name"
+    if [ ! -d $service_log_path ]; then
+        make_service_directory $service_log_path
+    fi
+
+    log_file="$SVC_AV_PATH/rc.log"
+    main_file="$SVC_AV_PATH/rc.main"
+
+    # copy files
+    mkdir $SVC_AV_PATH
+    cp "$basepath/../$template_log_name" $log_file
+    cp "$basepath/../$template_main_name" $main_file
+
+    # template replace _tmpl_logdir
+    sed -i 's:_tmpl_logdir:'$service_log_path':' $log_file
+
+    # exec permissions on files
+    chmod +x $log_file
+    chmod +x $main_file
+
+    # sticky permissions on directory
+    chmod +t $SVC_AV_PATH
+
+    # Print message
+    echo
+    echo "Files and paths have been configured!"
+    echo
+    echo "You will need to edit the rc.main file's EXECBIN variable to point "
+    echo "to point to your service executable. This should be done before you "
+    echo "register it for activation"
+    echo
+    echo "The file location is here:"
+    printf "\t$main_file\n"
+    echo
+  exit
+fi
+## END create action
+
+
+SVC_AC_PATH="$PERP_SERVICE_ACTIVE_PATH/$service_name"
+SVC_EXEC_PATH="$PERP_EXEC_PATH/$service_name"
+
+perpctl_exec=$(which perpctl | grep not)
+
+perpctl_exec=""
+if [ ${#perpctl_exec} -gt 0 ]; then
+    perpctl_exec=0
+    echo
+    echo "perpd service controller not found"
+    echo "only symlinks will be manipulated"
+    echo
+else
+    perpctl_exec=$(which perpctl)
+fi
+
+
+## START register action
+if [ $action_type == "register" ]; then
+
+    # check if the service is available
+    if [ ! -d $SVC_AV_PATH ]; then
+      echo
+      echo "service by name of '$service_name' is not available!"
+      echo
+      echo "check the name is available with '$baseprog list-available' "
+      echo "or create it with '$baseprog make $service_name'"
+      echo
+      exit
+    fi
+
+    # check if link exists already
+    if [ -d $SVC_AC_PATH ]; then
+      echo
+      echo "service by name of '$service_name' is already active!"
+      echo "...exiting"
+      echo
+      exit
+    fi
+
+    # check the PREP EXEC path is writable
+    if [ ! -d $PERP_EXEC_PATH ]; then
+      echo
+      echo "not able to write to 'perpd' directory: $PERP_EXEC_PATH"
+      echo "check to make sure it exists"
+      echo "...exiting"
+      exit
+    fi
+
+    # add: perp-services linking from available to active
+    ln -s $SVC_AV_PATH $SVC_AC_PATH
+    ln -s $SVC_AC_PATH $SVC_EXEC_PATH
+    sudo ln -s $SVC_AC_PATH $PERP_BASE/$service_name
+    msg_link="$service_name links added to active"
+
+    if [ ${#perpctl_exec} -ne 0 ] && [ -e $perpctl_exec ]; then
+      sudo $perpctl_exec -b $PERP_BASE A $service_name
+      echo
+      echo "perpd: '$service_name' is being monitored"
+    fi
+
+    # Print message
+    if [ -e $SVC_AV_PATH ] && [ -e $SVC_AC_PATH ]; then
+        echo
+        echo "$msg_link"
+        echo
+    else
+        echo
+        echo "ERROR: $service_name could not be linked"
+        echo
+    fi
+    exit
+fi
+## END register action
+
+
+## START unregister action
+if [ $action_type == "unregister" ]; then
+
+    # check if the service is available
+    if [ ! -d $SVC_AV_PATH ]; then
+      echo
+      echo "service by name of '$service_name' is not available!"
+      echo
+      echo "check the name is registered with '$baseprog list-active' "
+      echo "or create it with '$baseprog make $service_name'"
+      echo
+      exit
+    fi
+
+    # check if link doesn't already exist
+    if [ ! -d $SVC_AC_PATH ]; then
+      echo
+      echo "service by name of '$service_name' is already inactive!"
+      echo "...exiting"
+      echo
+      exit
+    fi
+
+    # deactivate through perpctl
+    if [ ${#perpctl_exec} -ne 0 ] && [ -e $perpctl_exec ]; then
+      sudo $perpctl_exec -b $PERP_BASE X $service_name
+      echo
+      echo "perpd: '$service_name' no longer monitored"
+    fi
+
+    # remove: perp-services links from active and exec area
+    rm -f $SVC_AC_PATH
+    rm -f $SVC_EXEC_PATH
+    sudo rm -f $PERP_BASE/$service_name
+    msg_link="$service_name links removed from active"
+
+    # Print message
+    if [ ! -e $SVC_AC_PATH ] && [ ! -e $SVC_EXEC_PATH ]; then
+        echo
+        echo "$msg_link"
+        echo
+    else
+        echo
+        echo "ERROR: $service_name links not removed"
+        echo
+    fi
+    exit
+
+  exit
+fi
+## END unregister action

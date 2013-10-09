@@ -1,6 +1,6 @@
 /* hdb.h
 ** constant (hash) database on disk
-** wcm, 2010.05.27 - 2010.12.14
+** wcm, 2010.05.27 - 2012.07.25
 ** ===
 */
 
@@ -303,7 +303,7 @@ extern int hdb_get(hdb_t *H, uchar_t *buffer, size_t len);
 **     before each hdb_dynget()
 **
 */
-extern int hdb_dynget(hdb_t *H, dynbuf *D);
+extern int hdb_dynget(hdb_t *H, dynbuf_t *D);
 
 /* hdb_distance()
 **   after successful hdb_find(), return "distance" from target hash slot
@@ -362,7 +362,7 @@ extern int hdb_read(hdb_t *H, uchar_t *buf, size_t len, uint32_t offset);
 **     for copy (not append) into D->buf[0], use dynbuf_CLEAR(D)
 **     before each hdb_dynread()
 */
-extern int hdb_dynread(hdb_t *H, dynbuf *B, size_t len, uint32_t offset);
+extern int hdb_dynread(hdb_t *H, dynbuf_t *B, size_t len, uint32_t offset);
 
 /* hdb_cc()
 **   duplicate an initialized hdb_t object from src to dest

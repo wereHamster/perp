@@ -1,5 +1,5 @@
 /* cdb_dynget.c
-** wcm, 2010.05.29 - 2010.10.26
+** wcm, 2010.05.29 - 2012.07.25
 ** ===
 */
 
@@ -18,7 +18,7 @@
 **     operation on dynbuf is "append"
 */
 int
-cdb_dynget(struct cdb *C, dynbuf *B)
+cdb_dynget(struct cdb *C, struct dynbuf *B)
 {
     return cdb_dynread(C, B, cdb_dlen(C), cdb_dpos(C));
 }

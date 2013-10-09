@@ -1,6 +1,6 @@
 /* dynstuf.h
 ** dynstuf: dynamic storage of arbitrary data
-** wcm, 2006.06.19 - 2009.09.18
+** wcm, 2006.06.19 - 2012.07.25
 ** ===
 */
 #ifndef DYNSTUF_H
@@ -33,7 +33,7 @@ typedef struct dynstuf dynstuf_t;
 **   initialized dynstuf on success
 **   NULL on error (allocation failure)
 */
-struct dynstuf * dynstuf_new(void);
+extern struct dynstuf * dynstuf_new(void);
 
 /* dynstuf object initialization: */
 /* initialize S
@@ -42,7 +42,7 @@ struct dynstuf * dynstuf_new(void);
 **   initialized dynstuf on success
 **   NULL on error (allocation failure)
 */
-struct dynstuf * dynstuf_init(struct dynstuf *S);
+extern struct dynstuf * dynstuf_init(struct dynstuf *S);
 
 /* preallocate more slots in dynstuf: */
 /* only needed if you want to avoid repetitive error checking on dynstuf_push()
@@ -50,27 +50,27 @@ struct dynstuf * dynstuf_init(struct dynstuf *S);
 **    0 (no error) on success
 **   -1 on error
 */
-int dynstuf_grow(struct dynstuf *, size_t add);
+extern int dynstuf_grow(struct dynstuf *, size_t add);
 
 /* destructor: */
 /* optional second argument may be used to free data items within dynstuf
 ** before the dynstuf itself is freed
 ** (ignored if NULL)
 */
-void dynstuf_free(struct dynstuf *, void (*free_data)(void *data));
+extern void dynstuf_free(struct dynstuf *, void (*free_data)(void *data));
 
 
 /* dynstuf metadata: */
-size_t  dynstuf_items(struct dynstuf *);
+extern size_t dynstuf_items(struct dynstuf *);
 #define dynstuf_ITEMS(S) ((S)->items)
 
-size_t  dynstuf_isempty(struct dynstuf *);
+extern size_t dynstuf_isempty(struct dynstuf *);
 #define dynstuf_ISEMPTY(S) ((S)->items == 0)
 
-size_t  dynstuf_slots(struct dynstuf *);
+extern size_t dynstuf_slots(struct dynstuf *);
 #define dynstuf_SLOTS(S) ((S)->slots)
 
-void ** dynstuf_stuf(struct dynstuf *);
+extern void ** dynstuf_stuf(struct dynstuf *);
 #define dynstuf_STUF(S)  ((S)->stuf)
 
 
@@ -79,23 +79,23 @@ void ** dynstuf_stuf(struct dynstuf *);
 **   0 (no error) on success
 **  -1 on error
 */
-int dynstuf_push(struct dynstuf *S, void *item);
+extern int dynstuf_push(struct dynstuf *S, void *item);
 
 /* dynstuf stack operations: */
-void * dynstuf_peek(struct dynstuf *S);
-void * dynstuf_pop(struct dynstuf *S);
+extern void * dynstuf_peek(struct dynstuf *S);
+extern void * dynstuf_pop(struct dynstuf *S);
 
 /* get item in stuf[slot]: */
 /* returns NULL if slot >= S->items, else item */
-void * dynstuf_get(struct dynstuf *S, size_t slot);
+extern void * dynstuf_get(struct dynstuf *S, size_t slot);
 
 /* set item in stuf[slot]: */
 /* returns NULL if slot >= S->items, else item */
-void * dynstuf_set(struct dynstuf *S, size_t slot, void *item);
+extern void * dynstuf_set(struct dynstuf *S, size_t slot, void *item);
 
 /* replace item at stuf[slot] with newitem: */
 /* returns NULL if slot >= S->items, else original item */
-void * dynstuf_replace(struct dynstuf *S, size_t slot, void *newitem);
+extern void * dynstuf_replace(struct dynstuf *S, size_t slot, void *newitem);
 
 
 /* type signature for user-supplied comparison function in:
@@ -108,7 +108,7 @@ typedef int(*dynstuf_cmp_t)(const void *a, const void *b);
 **   a sequential search; S->stuf may be unorderd
 **   returns matching slot if found, else S->items
 */
-size_t dynstuf_find(
+extern size_t dynstuf_find(
     struct dynstuf *S,
     size_t          slot,
     void           *key,
@@ -117,16 +117,16 @@ size_t dynstuf_find(
 
 
 /* sort items in dynstuf using supplied cmp() function: */
-void dynstuf_sort(struct dynstuf *S, int(*cmp)(const void *a, const void *b));
+extern void dynstuf_sort(struct dynstuf *S, int(*cmp)(const void *a, const void *b));
 /* that is:
 **   void dynstuf_sort(struct dynstuf *S, dynstuf_cmp_t cmp);
 */
 
 /* put items in dynstuf in reverse order: */
-void dynstuf_reverse(struct dynstuf *S);
+extern void dynstuf_reverse(struct dynstuf *S);
 
 /* apply a "visitor" function to each item in dynstuf: */
-void dynstuf_visit(struct dynstuf *S, void (*visitor)(void *item, void *xtra), void *xtra);
+extern void dynstuf_visit(struct dynstuf *S, void (*visitor)(void *item, void *xtra), void *xtra);
 
 
 #endif /* DYNSTUF_H */

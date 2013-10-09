@@ -1,5 +1,5 @@
 /* dynbuf_put.c
-** wcm, 2004.04.20 - 2009.09.09
+** wcm, 2004.04.20 - 2012.07.25
 ** ===
 */
 #include <stddef.h>
@@ -10,7 +10,7 @@
 
 
 int
-dynbuf_putbuf(dynbuf *d, const void *buf, size_t len)
+dynbuf_putbuf(struct dynbuf *d, const void *buf, size_t len)
 {
     unsigned char *b;
 
@@ -29,23 +29,16 @@ dynbuf_putbuf(dynbuf *d, const void *buf, size_t len)
 
 
 int
-dynbuf_put(dynbuf *to, const dynbuf *from)
+dynbuf_put(struct dynbuf *to, const struct dynbuf *from)
 {
     return dynbuf_putbuf(to, from->buf, from->n);
 }
 
 
 int
-dynbuf_puts(dynbuf *d, const char *str)
+dynbuf_puts(struct dynbuf *d, const char *str)
 {
     return dynbuf_putbuf(d, str, cstr_len(str));
 }
 
-
-int
-dynbuf_putnul(dynbuf *d)
-{
-    return dynbuf_putbuf(d, "\0", 1);
-}
-
-/* eof (dynbuf_put.c) */
+/* eof: dynbuf_put.c */

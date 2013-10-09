@@ -1,6 +1,6 @@
 /* cstr.h
 ** cstr: nul-terminated character buffer
-** wcm, 2004.04.19 - 2010.11.09
+** wcm, 2004.04.19 - 2012.06.02
 ** ===
 */
 #ifndef CSTR_H
@@ -114,6 +114,26 @@ cstr_copy(char *to, const char *from);
 extern
 char *
 cstr_dup(const char *s);
+
+/* cstr_eq()
+**   synopsis:
+**     compare two strings for equivalence
+**
+**   return
+**     boolean true, two strings equivalent
+**     boolean false, two strings not equivalent
+*/
+#define cstr_eq(s1, s2)  (cstr_cmp((s1),(s2))==0)
+
+/* cstr_eqi()
+**   synopsis:
+**     compare two strings for equivalence, case insensitive
+**
+**   return
+**     boolean true, two strings equivalent
+**     boolean false, two strings not equivalent
+*/
+#define cstr_eqi(s1, s2)  (cstr_cmpi((s1),(s2))==0)
 
 /* cstr_lcat()
 **   synopsis:

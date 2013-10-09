@@ -1,5 +1,5 @@
 /* hdb_dynread.c
-** wcm, 2010.05.29 - 2010.12.14
+** wcm, 2010.05.29 - 2012.07.25
 ** ===
 */
 
@@ -18,7 +18,7 @@
 /* XXX, hacks dynbuf interface */
 
 int
-hdb_dynread(struct hdb *H, dynbuf *B, size_t len, uint32_t offset)
+hdb_dynread(struct hdb *H, struct dynbuf *B, size_t len, uint32_t offset)
 {
   if(dynbuf_grow(B, len) == -1)
       return -1;

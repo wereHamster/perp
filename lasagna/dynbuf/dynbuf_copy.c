@@ -1,5 +1,5 @@
 /* dynbuf_copy.c
-** wcm, 2004.04.20 - 2008.10.23
+** wcm, 2004.04.20 - 2012.07.25
 ** ===
 */
 #include <stddef.h>
@@ -9,7 +9,7 @@
 #include "cstr.h"
 
 int
-dynbuf_copybuf(dynbuf *d, const void *buf, size_t len)
+dynbuf_copybuf(struct dynbuf *d, const void *buf, size_t len)
 {
     unsigned char *b;
 
@@ -26,17 +26,17 @@ dynbuf_copybuf(dynbuf *d, const void *buf, size_t len)
 
 
 int
-dynbuf_copy(dynbuf *to, const dynbuf *from)
+dynbuf_copy(struct dynbuf *to, const struct dynbuf *from)
 {
     return dynbuf_copybuf(to, from->buf, from->n);
 }
 
 
 int
-dynbuf_copys(dynbuf *d, const char *str)
+dynbuf_copys(struct dynbuf *d, const char *str)
 {
     return dynbuf_copybuf(d, str, cstr_len(str));
 
 }
 
-/* eof (dynbuf_copy.c) */
+/* eof: dynbuf_copy.c */

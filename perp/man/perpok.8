@@ -1,7 +1,7 @@
 .\" perpok.8
-.\" wcm, 2009.11.10 - 2011.02.01
+.\" wcm, 2009.11.10 - 2013.01.09
 .\" ===
-.TH perpok 8 "March 2011" "perp-2.04" "persistent process supervision"
+.TH perpok 8 "January 2013" "perp-2.07" "persistent process supervision"
 .SH NAME
 perpok \- check a
 .BR perpd (8)
@@ -126,7 +126,7 @@ This option causes
 to print a message reporting either success or failure to stderr on exit.
 .SH EXAMPLES
 .B perpok
-may be used as a primitive dependency tool within service runscripts:
+may be used as a basic dependency checking utility within service runscripts:
 .PP
 .RS
 .nf
@@ -137,19 +137,22 @@ if test ${1} = "start" ; then
     exit 1
   fi
   # otherwise foo ok, continue to start service:
-  exec whatever ...
+  exec /usr/bin/bar ...
 fi
 .fi
 .RE
 .PP
-This example shows a runscript that uses
+This example shows a runscript for a ``bar'' service that uses
 .B perpok
 to require a dependency on another service named ``foo''.
 If foo has not been running for at least 3 seconds,
 the runscript exits immediately.
 The
 .BR perpd (8)
-supervisor running this service will then continue trying to restart it at one second intervals.
+supervisor running this service will then continue to try restarting it at one second intervals,
+until the
+.B perpok
+dependency check succeeds.
 .PP
 Note that, when using
 .B perpok
@@ -221,7 +224,7 @@ A collection of services running under
 tends to be reliable,
 so that the use of
 .B perpok
-for simple dependency checking at startup is often adequate.
+for basic dependency checking at startup is normally adequate.
 Interrelated services may also use
 .B perpok
 in combination with runscript

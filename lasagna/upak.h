@@ -1,11 +1,12 @@
 /* upak.h
 ** upak, portable storage for unsigned integers
-** wcm, 2004.12.29 - 2010.12.09
+** wcm, 2004.12.29 - 2012.08.04
 ** ===
 */
 #ifndef UPAK_H
 #define UPAK_H 1
 
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -74,7 +75,7 @@ extern uint32_t upak24_unpack(const uchar_t *buf);
   )
 
 
-/* upak32_*(), for uint32_t (caller supplies buf[4]: */
+/* upak32_*(), for uint32_t (caller supplies buf[4]): */
 extern uchar_t * upak32_pack(uchar_t *buf, uint32_t u);
 extern uint32_t upak32_unpack(const uchar_t *buf);
 /* inline unpack: */
@@ -84,6 +85,25 @@ extern uint32_t upak32_unpack(const uchar_t *buf);
       (((uint32_t)(((uchar_t *)(b))[2])) << 16) + \
       (((uint32_t)(((uchar_t *)(b))[1])) << 8) + \
         (uint32_t)(((uchar_t *)(b))[0]) \
+  )
+
+/* upak48_*(), for uint64_t (caller supplies buf[6]): */
+/*   special notes:
+**     pack/unpack unsigned integer in range [0..(2^48 - 1)]
+**     no range checking in upak48_pack()
+**     (caller must screen input)
+*/
+extern uchar_t * upak48_pack(uchar_t *buf, uint64_t u);
+extern uint64_t upak48_unpack(const uchar_t *buf);
+/* inline unpack: */
+#define upak48_UNPACK(b) \
+  (\
+      (((uint64_t)(((uchar_t *)(b))[5])) << 40) + \
+      (((uint64_t)(((uchar_t *)(b))[4])) << 32) + \
+      (((uint64_t)(((uchar_t *)(b))[3])) << 24) + \
+      (((uint64_t)(((uchar_t *)(b))[2])) << 16) + \
+      (((uint64_t)(((uchar_t *)(b))[1])) << 8) + \
+        (uint64_t)(((uchar_t *)(b))[0]) \
   )
 
 
@@ -128,7 +148,12 @@ extern uint64_t upak64_unpack(const uchar_t *buf);
 **
 **   note: caller must supply buf of sufficient size!
 */
-extern ssize_t upak_pack(uchar_t *buf, char *fmt, ...);
+extern ssize_t upak_pack(uchar_t *buf, const char *fmt, ...);
+
+/* upak_vpack()
+**   va_list version of upak_pack()
+*/
+extern ssize_t upak_vpack(uchar_t *b, const char *fmt, va_list args);
 
 /* upak_unpack()
 **   unpack from buf the variable number of packed integers specified in fmt
@@ -138,7 +163,7 @@ extern ssize_t upak_pack(uchar_t *buf, char *fmt, ...);
 **     >= 0: number of bytes unpacked from buf
 **     -1  : error, errno = EINVAL (unknown format character in fmt)
 */
-extern ssize_t upak_unpack(uchar_t *buf, char *fmt, ...);
+extern ssize_t upak_unpack(uchar_t *buf, const char *fmt, ...);
 
 
 #endif /* UPAK_H */

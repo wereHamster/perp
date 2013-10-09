@@ -3,7 +3,7 @@
 ** perp 2.0: single process scanner/supervisor/controller
 ** perpls: query and list perp services
 ** (ipc client query to perpd server)
-** wcm, 2008.01.23 - 2011.01.27
+** wcm, 2008.01.23 - 2013.01.07
 ** ===
 */
 
@@ -791,6 +791,7 @@ main(int argc, char *argv[])
               fatal(111, "allocation failure");
           }
       }
+      closedir(dir);
 
       /* sort directory list by name: */
       if(sort_by == NULL)

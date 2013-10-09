@@ -1,6 +1,5 @@
-/*
-** dynbuf_freebuf.c
-** wcm, 2004.05.01 - 2004.05.01
+/* dynbuf_freebuf.c
+** wcm, 2004.05.01 - 2012.07.25
 ** ===
 */
 #include <stdlib.h>
@@ -9,7 +8,7 @@
 /* release internal buffer only: */
 
 void
-dynbuf_freebuf(dynbuf *d)
+dynbuf_freebuf(struct dynbuf *d)
 {
     if(d){
         if(d->buf) {
@@ -22,4 +21,4 @@ dynbuf_freebuf(dynbuf *d)
     return;
 }
 
-/* that's all, folks! */
+/* eof: dynbuf_freebuf.c */

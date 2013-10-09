@@ -1,6 +1,5 @@
-/*
-** dynbuf.c
-** wcm, 2004.04.20 - 2004.04.20
+/* dynbuf.c
+** wcm, 2004.04.20 - 2012.07.25
 ** ===
 */
 #include <stdlib.h>
@@ -8,16 +7,16 @@
 
 /* accessors: */
 
-dynbuf *
-dynbuf_buf(dynbuf *d)
+void *
+dynbuf_buf(struct dynbuf *d)
 {
     return d->buf;
 }
 
 size_t
-dynbuf_len(dynbuf *d)
+dynbuf_len(struct dynbuf *d)
 {
     return d->p;
 }
 
-/* that's all, folks! */
+/* eof: dynbuf.c */

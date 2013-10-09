@@ -2,7 +2,7 @@
 ** perp: perpsistent process supervision
 ** perpd 2.0: single process scanner/supervisor/controller
 ** perpd.h: header file for perpd
-** wcm, 2011.01.12 - 2011.03.21
+** wcm, 2011.01.12 - 2013.01.07
 ** ===
 */
 #ifndef PERPD_H
@@ -118,8 +118,10 @@ extern struct svdef * perpd_lookup(dev_t dev, ino_t ino);
 
 /* subsv object (one of a service pair): */
 struct subsv {
-  /* process id of main/log: */
+  /* process id of current active main/log: */
   pid_t    pid;
+  /* process id of previously active main/log: */
+  pid_t    pid_prev;
   /* bitset flags (definitions in perp_common.h as described below): */
   uchar_t  bitflags;
 /*
@@ -227,7 +229,7 @@ extern void perpd_conn_write(struct perpd_conn *client);
 
 /* version(), usage(), etc: */
 #define version() \
-  eputs("version: ", progname, PERP_VERSION)
+  eputs("version: ", progname, " ", PERP_VERSION)
 
 #define usage() \
   eputs("usage: ", progname, " ", prog_usage)

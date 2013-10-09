@@ -1,11 +1,15 @@
 .\" runuid.8
-.\" wcm, 2009.12.11 - 2009.12.15
+.\" wcm, 2009.12.11 - 2012.01.04
 .\" ===
-.TH runuid 8 "March 2011" "runtools-2.04" "runtools"
+.TH runuid 8 "January 2013" "runtools-2.07" "runtools"
 .SH NAME
-runuid \- run a program as a different user
+runuid \- run a program with specific user and group permissions
 .SH SYNOPSIS
-.B runuid [\-hV]
+.B runuid [\-hV] [\-g
+.I group
+.B ] [\-s | \-S
+.I grplist
+.B ]
 .I account program
 .B [
 .I args ...
@@ -29,9 +33,66 @@ variable in the current environment.
 itself needs root privilege to run.
 .SH OPTIONS
 .TP
+.B \-g group
+Group.
+Normally
+.B runuid
+sets the base group permission corresponding to the group ID of the
+.IR account .
+The
+.B \-g
+option may be used to specify a different base group permission.
+.TP
 .B \-h
 Help.
 Print a brief usage message to stderr and exit.
+.TP
+.B \-S grplist
+Supplemental (listed).
+Normally
+.B runuid
+sets only a single group permission corresponding to the group ID of the
+.IR account ,
+or as specified with the
+.B \-g
+option.
+The
+.B \-S
+option will additionally set supplemental group permissions
+as given in the
+.I grplist
+argument,
+a colon-delimited list of one or more arbitrary group names as defined in 
+.IR /etc/group .
+The
+.B \-S
+option and the
+.B \-s
+option are mutually exclusive.
+.TP
+.B \-s
+Supplemental (/etc/group).
+Normally
+.B runuid
+sets only a single group permission corresponding to the group ID of the
+.IR account ,
+or as specified with the
+.B \-g
+option.
+The
+.B \-s
+option will additionally set all supplemental group permissions
+defined for the
+.I account
+in
+.I /etc/group
+as described in
+.BR initgroups (3).
+The
+.B \-s
+option and the
+.B \-S
+option are mutually exclusive.
 .TP
 .B \-V
 Version.
@@ -85,5 +146,7 @@ Wayne Marshall, http://b0llix.net/perp/
 .BR runpause (8),
 .BR runsession (8),
 .BR runtool (8),
-.BR runtrap (8)
+.BR runtrap (8),
+.BR initgroups (3),
+.BR setgroups (2)
 .\" EOF

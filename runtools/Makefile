@@ -1,7 +1,7 @@
 # Makefile
 # makfile for runtools:
 # utilities for perpetrate runscripts
-# wcm, 2008.01.04 - 2011.03.21
+# wcm, 2008.01.04 - 2013.01.08
 # ===
 
 # build configuration:
@@ -124,7 +124,7 @@ install-cattools: $(CATTOOLS)
 	done
 
 strip: $(RUNTOOLS) $(CATTOOLS)
-	strip  $(RUNTOOLS) $(CATTOOLS)
+	$(STRIP) $(RUNTOOLS) $(CATTOOLS)
 
 
 .PHONY: all clean install install-man install-sbin install-cattools strip

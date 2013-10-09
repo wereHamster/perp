@@ -1,5 +1,5 @@
 # lasagna/README
-# wcm, 2009.12.20 - 2010.12.30
+# wcm, 2009.12.20 - 2013.01.08
 # ===
 
 This is libasagna, or "-lasagna", a cheesy high-cholesterol general
@@ -34,8 +34,8 @@ their header files:
     buf.h       operations on byte buffers
     cdb.h       constant database hash on disk (cdb)
     cstr.h      operations on C strings (nul-terminated char buffers)
-    die.h       immediate process termination
     devout.h    unbuffered write()
+    die.h       immediate process termination
     domsock.h   interface to unix/local domain sockets
     dynbuf.h    dynamic (growable) buffers
     dynstr.h    dynamic (growable) strings

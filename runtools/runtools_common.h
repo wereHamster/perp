@@ -1,6 +1,6 @@
 /* runtools_common.h
 ** common defines for runtools
-** wcm, 2008.01.23 - 2011.03.11
+** wcm, 2008.01.23 - 2013.01.11
 ** ===
 */
 #ifndef RUNTOOLS_COMMON_H
@@ -14,7 +14,7 @@
 
 /* release version string: */
 #ifndef RUNTOOLS_VERSION
-#define RUNTOOLS_VERSION "2.04"
+#define RUNTOOLS_VERSION "2.07"
 #endif
 
 

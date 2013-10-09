@@ -120,7 +120,7 @@ clean: TARGETS
 	rm -f `cat TARGETS` TARGETS
 
 strip: $(PERPAPPS)
-	strip $(PERPAPPS)
+	$(STRIP) $(PERPAPPS)
 
 
 .PHONY: all clean install install-man install-sbin strip

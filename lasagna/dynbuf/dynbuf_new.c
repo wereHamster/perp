@@ -1,16 +1,14 @@
-/*
-** dynbuf_new.c
-** wcm, 2004.04.20 - 2004.04.20
+/* dynbuf_new.c
+** wcm, 2004.04.20 - 2012.07.25
 ** ===
 */
 #include <stdlib.h>
 #include "dynbuf.h"
 
-
-dynbuf *
+struct dynbuf *
 dynbuf_new()
 {
-    dynbuf *d = (dynbuf *)malloc(sizeof(dynbuf));
+    struct dynbuf *d = (struct dynbuf *)malloc(sizeof(struct dynbuf));
 
     if(d){
         d->buf = (void *)malloc(DYNBUF_INITSIZE);
@@ -23,7 +21,8 @@ dynbuf_new()
             d = NULL;
         }
     }
+
     return d;
 } 
 
-/* that's all, folks! */
+/* eof: dynbuf_new.c */

@@ -1,7 +1,7 @@
 # INSTALL
 # perp: persistent process supervision
 # (includes runtools and libasagna)
-# wcm, 2009.12.23 - 2011.02.02
+# wcm, 2009.12.23 - 2013.01.09
 # ===
 
 SYNOPSIS
@@ -93,12 +93,19 @@ In this example, the current instance of perpd is shown running as
 process id 233.  The SIGTERM sent to perpd initiates a controlled
 shutdown of all services, before perpd terminates itself.
 
+As a simpler alternative to the above, the perphup(8) utility may also
+be used with the `-t' option to perform the controlled termination
+and restart of an active perpd installation:
+
+  $ su
+  # perphup -t /etc/perp
+
 Under a normal configuration, perpd is itself supervised by either
 init(8) through a "respawn" entry in /etc/inittab, or by perpboot(8)
 started in /etc/rc.local.  In either of these cases, the newly installed
-version of perpd will be restarted automatically after the old version
-exits.  All the services installed and activated in /etc/perp will
-then be automatically restarted and restored to operation.
+version of perpd will normally be restarted automatically after the
+old version exits.  All the services installed and activated in
+/etc/perp will then be automatically restarted and restored to operation.
 
 The perp-setup script may install new versions of perpboot(8) scripts
 in /etc/perp/.boot/ without disturbing any existing ones.  The new

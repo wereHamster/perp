@@ -1,7 +1,7 @@
 .\" perpd.8
-.\" wcm, 2008.02.26 - 2011.03.11
+.\" wcm, 2008.02.26 - 2013.01.09
 .\" ===
-.TH perpd 8 "March 2011"  "perp-2.04"  "persistent process supervision"
+.TH perpd 8 "January 2013"  "perp-2.07"  "persistent process supervision"
 .SH NAME
 perpd \- persistent process scanner/supervisor/controller
 .SH SYNOPSIS
@@ -212,7 +212,7 @@ being unable to find or change into the base directory;
 finding another instance of
 .B perpd
 running on the same base directory;
-or failure during initializations of its control files.
+or failure during initialization of its control files.
 Otherwise,
 .B perpd
 is designed to start at system boot and continue running until system shutdown.
@@ -539,6 +539,33 @@ will use its value to define PERP_BASE within the environment of each
 service runscript it starts.
 If defined,
 PERP_BASE should be given as an absolute pathname.
+.RE
+.PP
+PERP_SVPID
+.RS
+The process ID of the active or terminated service.
+.B perpd
+supplies the process ID of the service process in the value of the PERP_SVPID variable
+within the environment of both the ``start'' and ``reset'' invocations of the runscript.
+In the case of the ``start'' target,
+the value given in PERP_SVPID is the process ID of the script itself,
+and which normally becomes the pid of the active service,
+as when the script calls the
+.B exec
+command to run the service program.
+In the case of the ``reset'' target,
+the value given in PERP_SVPID is the process ID of the service
+that has just terminated.
+.RE
+.PP
+PERP_SVSECS
+.RS
+The uptime in seconds of the terminated service.
+.B perpd
+supplies the total wallclock runtime of the process that has just terminated
+in the value of the PERP_SVSECS variable.
+This variable is defined only within the environment of the ``reset''
+invocation of the runscript.
 .RE
 .SH ERROR LOGGING
 .B perpd

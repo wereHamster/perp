@@ -1,5 +1,5 @@
 /* sissylog.h
-** wcm, 2009.09.29 - 2011.03.11
+** wcm, 2009.09.29 - 2013.01.13
 ** ===
 */
 #ifndef SISSYLOG_H
@@ -14,7 +14,7 @@
 
 /* release version string: */
 #ifndef SISSYLOG_VERSION
-#define SISSYLOG_VERSION "2.04"
+#define SISSYLOG_VERSION "2.07"
 #endif
 
 #ifndef LOGLINE_MAX

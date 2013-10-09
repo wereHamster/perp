@@ -1,10 +1,11 @@
 # README
 # perp: persistent process supervision
 # (includes runtools and libasagna)
-# wcm, 2009.12.28 - 2011.02.02
+# wcm, 2009.12.28 - 2013.01.11
 # ===
 
-This is perp, aka "the perpetrator", a persistent process supervisor.
+This is perp, aka "the perpetrator", a persistent process supervisor
+and service managment framework for un!x.
 
 The perp package provides a set of daemons and utilities to reliably
 start, monitor, log, and control a collection of persistent processes.
@@ -89,6 +90,12 @@ This release of perp does not include replacement for /sbin/init.
 If this is important for you -- and especially if you are interested
 in developing a complete perp-based un!x distribution -- please
 let me know.
+
+
+Feedback:
+
+This project includes the suggestions and corrections provided by perp
+users from around the world.  Thanks for your feedback!
 
 
 More information:

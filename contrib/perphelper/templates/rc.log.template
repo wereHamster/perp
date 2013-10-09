@@ -1,0 +1,10 @@
+#!/bin/sh
+
+## This is the location of the log directory
+LOGDIR="_tmpl_logdir"
+
+if test ${1} = 'start' ; then
+    exec tinylog -s 1000000 -k 10 -t ${LOGDIR}
+fi
+
+exit 0

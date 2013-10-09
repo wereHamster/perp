@@ -2,7 +2,7 @@
 ** perp: persistent process supervision
 ** perpd 2.0: single process scanner/supervisor/controller
 ** perpd_svdef: perpd subroutines on service definitions
-** wcm, 2010.12.28 - 2011.02.07
+** wcm, 2010.12.28 - 2013.01.07
 ** ===
 */
 
@@ -269,7 +269,7 @@ perpd_svdef_wantcull(struct svdef *svdef)
 
   /* if here, nothing was running to kill()
   **   - for example: no log, and main service was already down
-  **   - but upto now the service was still considered active
+  **   - but up to now the service was still considered active
   **
   ** in any case, no kill() means:
   **   - no triggering of sigchld
@@ -340,6 +340,8 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
   tain_t         now, when_ok;
   tain_t         towait = tain_INIT(0,0);
   pid_t          pid;
+  int            wstat;
+  char           nbuf_reset[NFMT_SIZE];
   int            i;
 
   /* insanity checks: */
@@ -358,6 +360,7 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
   case SVRUN_RESET: subsv->bitflags |= SUBSV_FLAG_ISRESET; break;
   default: subsv->bitflags &= ~SUBSV_FLAG_ISRESET; break;
   }
+  wstat = subsv->wstat;
   subsv->pid = 0;
   subsv->wstat = 0;
   subsv->bitflags &= ~SUBSV_FLAG_FAILING;
@@ -370,19 +373,15 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
 
   /* additional args if running "reset": */
   if(target == SVRUN_RESET){
-      int  wstat = subsv->wstat;
-
       if(WIFEXITED(wstat)){
-          char  nstr[NFMT_SIZE];
           prog[3] = "exit";
-          prog[4] = nfmt_uint32(nstr, (uint32_t)WEXITSTATUS(wstat));
+          prog[4] = nfmt_uint32(nbuf_reset, (uint32_t)WEXITSTATUS(wstat));
           prog[5] = NULL;
       } else {
           int    n = (WIFSIGNALED(wstat) ? WTERMSIG(wstat) : WSTOPSIG(wstat));
-          char   nstr[NFMT_SIZE];
           char  *s = (char *)sysstr_signal(n);
           prog[3] = (WIFSIGNALED(wstat) ? "signal" : "stopped");
-          prog[4] = nfmt_uint32(nstr, (uint32_t)n);
+          prog[4] = nfmt_uint32(nbuf_reset, (uint32_t)n);
           prog[5] = ((s != NULL) ? s : "SIGUNKNOWN");
           prog[6] = NULL;
       }
@@ -412,6 +411,9 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
 
   /* child: */
   if(pid == 0){
+      /* nfmt buffer for environmental variables (reusable with newenv_set()): */
+      char  nbuf_env[NFMT_SIZE];
+
       /* run child in new process group: */
       setsid();
       /* cwd for runscripts is svdir: */
@@ -449,6 +451,26 @@ perpd_svdef_run(struct svdef *svdef, int which, int target)
           fatal_syserr("(in child for service ", svdef->name,
                        "): failure setting PERP_BASE environment for ",
                        prog[0], " ", prog[1]);
+      }
+      /* set PERP_SVPID in the environment: */
+      if(target == SVRUN_RESET){
+          nfmt_uint64(nbuf_env, (uint64_t)subsv->pid_prev);
+      }else{
+          nfmt_uint64(nbuf_env, (uint64_t)getpid());
+      }
+      if(newenv_set("PERP_SVPID", nbuf_env) == -1){
+          fatal_syserr("(in child for service ", svdef->name,
+                       "): failure setting PERP_SVPID environment for ",
+                       prog[0], " ", prog[1]);
+      }
+      /* set PERP_SVSECS in the environment (reset target only): */
+      if(target == SVRUN_RESET){
+          nfmt_uint64(nbuf_env, tain_uptime(&now, &subsv->when));
+          if(newenv_set("PERP_SVSECS", nbuf_env) == -1){
+              fatal_syserr("(in child for service ", svdef->name,
+                           "): failure setting PERP_SVSECS environment for ",
+                           prog[0], " ", prog[1]);
+          }
       }
       /* respawn governor: */
       if((target == SVRUN_START) && !(tain_iszero(&towait))){

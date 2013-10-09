@@ -1,6 +1,5 @@
-/*
-** dynbuf_free.c
-** wcm, 2004.04.20 - 2004.04.20
+/* dynbuf_free.c
+** wcm, 2004.04.20 - 2012.07.25
 ** ===
 */
 #include <stdlib.h>
@@ -8,7 +7,7 @@
 
 
 void
-dynbuf_free(dynbuf *d)
+dynbuf_free(struct dynbuf *d)
 {
     if(d){
         if(d->buf) free(d->buf);
@@ -17,4 +16,4 @@ dynbuf_free(dynbuf *d)
     return;
 }
 
-/* that's all, folks! */
+/* eof: dynbuf_free.c */
