@@ -1,6 +1,6 @@
 /* upak_unpack.c
 ** upak, portable storage for unsigned integers
-** wcm, 2004.12.29 - 2010.06.02
+** wcm, 2004.12.29 - 2012.08.04
 ** ===
 */
 #include <stddef.h>
@@ -15,7 +15,7 @@
 
 
 ssize_t
-upak_unpack(uchar_t *buf, char *fmt, ...)
+upak_unpack(uchar_t *buf, const char *fmt, ...)
 {
   va_list    args;
   uchar_t   *b = buf;
@@ -26,7 +26,7 @@ upak_unpack(uchar_t *buf, char *fmt, ...)
   uint64_t  *u64p; 
 
   va_start(args, fmt);
-  for(p = fmt; *p != '\0'; ++p){
+  for(p = (char *)fmt; *p != '\0'; ++p){
       switch(*p){
       case 'b':
       case 'c': /* char (1 byte) */
@@ -79,4 +79,4 @@ upak_unpack(uchar_t *buf, char *fmt, ...)
 }
 
 
-/* eof (upak_unpack.c) */
+/* eof: upak_unpack.c */

@@ -1,5 +1,5 @@
 /* ioq_putfile.c
-** wcm, 2010.01.07 - 2010.06.25
+** wcm, 2010.01.07 - 2012.07.24
 ** ===
 */
 /* stdlib: */
@@ -7,10 +7,8 @@
 /* unix: */
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/uio.h>
 
 /* lasagna: */
 #include "buf.h"
@@ -39,11 +37,10 @@ ioq_putfile(ioq_t *ioq, const char *filename)
     int           fd = 0;
     struct  stat  st;
     size_t        len = 0;
-    void         *map = NULL;
     int           terrno;
 
     if((fd = open(filename, O_RDONLY)) == -1){
-        return -1;
+        goto fail;
     }
 
     if(fstat(fd, &st) == -1){
@@ -56,24 +53,17 @@ ioq_putfile(ioq_t *ioq, const char *filename)
         return 0;
     }
 
-    map = (uchar_t *)mmap(0, len, PROT_READ, MAP_SHARED, fd, 0);
-    if(map == MAP_FAILED){
-        goto fail;
-    }
-
-    if(ioq_put(ioq, (const uchar_t *)map, len) == -1){
+    if(ioq_putfd(ioq, fd, len) == -1){
         goto fail;
     }
 
     /* success: */
-    munmap(map, len);
     close(fd);
     return 0; 
 
 fail:
     terrno = errno;
     if(fd) close(fd);
-    if(map) munmap(map, len);
     errno = terrno;
     return -1;
 }

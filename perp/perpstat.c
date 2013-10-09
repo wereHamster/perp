@@ -3,7 +3,7 @@
 ** perp 2.0: single process scanner/supervisor/controller
 ** perpstat: query and report current service status
 ** (ipc client query to perpd server)
-** wcm, 2008.01.23 - 2011.01.27
+** wcm, 2008.01.23 - 2012.01.04
 ** ===
 */
 
@@ -58,7 +58,7 @@
 
 /* logging variables in scope: */
 static const char  *progname = NULL;
-static const char   prog_usage[] = "[-hV] [-b basedir]";
+static const char   prog_usage[] = "[-hV] [-b basedir] sv [sv ...]";
 
 
 static

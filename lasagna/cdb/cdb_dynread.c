@@ -1,5 +1,5 @@
 /* cdb_dynread.c
-** wcm, 2010.05.29 - 2010.11.24
+** wcm, 2010.05.29 - 2012.07.25
 ** ===
 */
 
@@ -18,7 +18,7 @@
 /* XXX, hacks dynbuf interface */
 
 int
-cdb_dynread(struct cdb *C, dynbuf *B, size_t len, uint32_t offset)
+cdb_dynread(struct cdb *C, struct dynbuf *B, size_t len, uint32_t offset)
 {
   if(dynbuf_grow(B, len) == -1)
       return -1;

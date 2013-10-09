@@ -1,6 +1,6 @@
 /* hdbmk_finish.c
 ** hdb file writer/generator
-** wcm, 2010.05.27 - 2010.12.14
+** wcm, 2010.05.27 - 2012.07.25
 ** ===
 */
 
@@ -26,8 +26,32 @@
 
 
 /* subroutines in local scope: */
-static int tbuf_load(uchar_t *tbuf, uint32_t tslots, uint32_t target, uint32_t hash, uint32_t rpos);
 static void list_reverse(struct hdbmk_block **list);
+static int tbuf_load(uchar_t *tbuf, uint32_t tslots, uint32_t target, uint32_t hash, uint32_t rpos);
+
+
+/* list_reverse()
+**   reverse an hdbmk_block list
+**   (restores original entry order for stable hash key insertion)
+*/
+static
+void
+list_reverse(struct hdbmk_block **list)
+{
+  struct hdbmk_block  *k, *n, *t;
+
+  k = *list;
+  n = NULL;
+  while(k != NULL){
+      t = k->next;
+      k->next = n;
+      n = k;
+      k = t;
+  }
+
+  *list = n;
+  return;
+}
 
 
 /* tbuf_load()
@@ -80,34 +104,20 @@ tbuf_load(uchar_t *tbuf, uint32_t tslots, uint32_t target, uint32_t hash, uint32
 }
 
 
-/* list_reverse()
-**   reverse an hdbmk_block list
-**   (restores original entry order for stable hash key insertion)
-*/
-static
-void
-list_reverse(struct hdbmk_block **list)
-{
-  struct hdbmk_block  *k, *n, *t;
-
-  k = *list;
-  n = NULL;
-  while(k != NULL){
-      t = k->next;
-      k->next = n;
-      n = k;
-      k = t;
-  }
-
-  *list = n;
-  return;
-}
-
-
 /*
 ** public:
 */
 
+/*
+** notes:
+**   hdbmk_finish internals are much simpler than ezcdb because
+**   input block lists are already partitioned according to subtable
+**
+**        blocklists   subtables
+**        ----------   ---------
+**   cdb     4            256
+**   hdb     8              8
+*/
 
 int
 hdbmk_finish(struct hdbmk *M)
@@ -115,45 +125,40 @@ hdbmk_finish(struct hdbmk *M)
   /* hbase initialized from current file offset: */
   uint32_t        hbase = (uint32_t)M->fp;
   uint32_t        fp_eof;
-  uint32_t        tslots;
-  uint32_t        toff, tbase_adj;
+  uint32_t        slots, sum_slots;
+  uint32_t        toff;
   uint32_t        nrecs;
-  uint32_t        sum;
   uint32_t        subtab_slots[HDB_NTABS];
   uint32_t        subtab_offset[HDB_NTABS];
-  uint32_t        list_slots[HDB_NTABS];
-  uint32_t        list_max;
+  uint32_t        slot_max;
   uchar_t        *tbuf = NULL;
   uchar_t         nbuf[16];
   ssize_t         w;
   int             i, k;
   struct hdbmk_block *block = NULL;
 
-  /* initialize list counts: */
-  for(i = 0; i < HDB_NTABS; ++i){
-      list_slots[i] = 0;
-  }
-
   /* compute nrecs, slots, offsets and list counts for hash subtables: */
-  for(i = 0, nrecs = 0, sum = 0, toff = 0; i < HDB_NTABS; ++i){
+  for(i = 0, nrecs = 0, sum_slots = 0, toff = 0; i < HDB_NTABS; ++i){
      uint32_t  n = M->subtab_count[i];
+     /* metadata record counter (for hdb header): */
      nrecs += n;
-     subtab_slots[i] = tslots = n << 1;
+     /* hash table loading factor (0.5): */
+     slots = n << 1;
+     subtab_slots[i] = slots;
+     sum_slots += slots;
      subtab_offset[i] = toff;
-     sum += tslots;
-     list_slots[i] += tslots;
      /* update toff with overflow check: */
-     if(ufunc_u32add(&toff, (tslots * 8)) == -1) return -1;
+     if(ufunc_u32add(&toff, (slots * 8)) == -1) return -1;
   } 
 
   /* overflow check: */
   fp_eof = hbase;
-  if(ufunc_u32add(&fp_eof, (sum * 8)) == -1) return -1;
+  if(ufunc_u32add(&fp_eof, (sum_slots * 8)) == -1) return -1;
 
   /* get size of largest input list: */
-  for(i = 0, list_max = 0; i < HDB_NTABS; ++i){
-      if(list_max < list_slots[i])
-          list_max = list_slots[i];
+  for(i = 0, slot_max = 0; i < HDB_NTABS; ++i){
+      if(slot_max < subtab_slots[i])
+          slot_max = subtab_slots[i];
   }
 
   /* note:
@@ -166,7 +171,7 @@ hdbmk_finish(struct hdbmk *M)
   */
 
   /* allocate/initialize tbuf accomodating largest input list: */
-  tbuf = (uchar_t *)malloc(list_max * 8);
+  tbuf = (uchar_t *)malloc(slot_max * 8);
   if(tbuf == NULL){
       return -1;
   }
@@ -175,43 +180,34 @@ hdbmk_finish(struct hdbmk *M)
   ** section H: write hash tables
   */
 
-  /* reset slots accumulator: */
-  sum = 0;
   /* scan all input_list[]: */
   for(i = 0; i < HDB_NTABS; ++i){
+      /* slots in this subtable: */
+      slots = subtab_slots[i];
       /* reset tbuf: */
-      buf_zero(tbuf, list_slots[i] * 8);
+      buf_zero(tbuf, slots * 8);
       /* restore entry order for stable hash key insertion: */
       list_reverse(&M->block_list[i]);
-      /* tbase "adjustment" into tbuf for this input_list: */
-      tbase_adj = sum * 8;
       /* scan blocks in this input_list and load tbuf: */
       for(block = M->block_list[i]; block != NULL; block = block->next){
-          uint32_t  hash, rpos, ntab, tbase, target;
+          uint32_t  hash, rpos, target;
           /* process records in this block: */
           for(k = 0; k < block->n; ++k){
-              /* XXX, excessive elucidation! */
-              hash = block->record[k].value;    /* hash for this record */
-              rpos = block->record[k].offset;   /* offset to the record data */
-              ntab = hdb_NTAB(hash);            /* subtable for this hash */
-              tbase  = subtab_offset[ntab];     /* base offset to this subtable */
-              tbase -= tbase_adj;               /* adjust tbase for this list */
-              tslots = subtab_slots[ntab];      /* slots in this subtable */
-              target = hdb_SLOT(hash, tslots);  /* target slot for this entry */
+              hash = block->record[k].value;   /* hash for this record */
+              rpos = block->record[k].offset;  /* offset to the record data */
+              target = hdb_SLOT(hash, slots);  /* target slot for this entry */
               /* load/pack hash entry into slot nearest target: */
-              if(tbuf_load(tbuf + tbase, tslots, target, hash, rpos) == -1){
+              if(tbuf_load(tbuf, slots, target, hash, rpos) == -1){
                   free(tbuf);
                   return -1;
               }
           }
       }
       /* write this tbuf: */
-      if(ioq_put(&M->ioq, tbuf, list_slots[i] * 8) == -1){
+      if(ioq_put(&M->ioq, tbuf, subtab_slots[i] * 8) == -1){
           free(tbuf);
           return -1;
       }
-      /* update slots accumulator for tbase_adj adjustment: */
-      sum += list_slots[i];
   }
 
   /* release tbuf: */

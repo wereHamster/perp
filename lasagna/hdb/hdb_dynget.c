@@ -1,5 +1,5 @@
 /* hdb_dynget.c
-** wcm, 2010.05.29 - 2010.12.14
+** wcm, 2010.05.29 - 2012.07.25
 ** ===
 */
 
@@ -18,7 +18,7 @@
 **     operation on dynbuf is "append"
 */
 int
-hdb_dynget(struct hdb *H, dynbuf *B)
+hdb_dynget(struct hdb *H, struct dynbuf *B)
 {
     return hdb_dynread(H, B, hdb_dlen(H), hdb_dpos(H));
 }

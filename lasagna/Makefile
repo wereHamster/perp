@@ -1,6 +1,6 @@
 # Makefile
 # makfile for libasagna
-# wcm, 2008.01.04 - 2011.02.01
+# wcm, 2008.01.04 - 2013.01.08
 # ===
 
 include ../conf.mk
@@ -290,7 +290,9 @@ DYNBUF_OBJS=\
  dynbuf_grow.o \
  dynbuf_need.o \
  dynbuf_new.o \
+ dynbuf_pack.o \
  dynbuf_put.o \
+ dynbuf_putb.o \
  
 dynbuf.o : dynbuf/dynbuf.c dynbuf.h
 	$(CC) $(CFLAGS) -c dynbuf/dynbuf.c
@@ -316,8 +318,14 @@ dynbuf_need.o : dynbuf/dynbuf_need.c dynbuf.h
 dynbuf_new.o : dynbuf/dynbuf_new.c dynbuf.h
 	$(CC) $(CFLAGS) -c dynbuf/dynbuf_new.c
 
+dynbuf_pack.o : dynbuf/dynbuf_pack.c dynbuf.h
+	$(CC) $(CFLAGS) -c dynbuf/dynbuf_pack.c
+
 dynbuf_put.o : dynbuf/dynbuf_put.c dynbuf.h
 	$(CC) $(CFLAGS) -c dynbuf/dynbuf_put.c
+
+dynbuf_putb.o : dynbuf/dynbuf_putb.c dynbuf.h
+	$(CC) $(CFLAGS) -c dynbuf/dynbuf_putb.c
 
 
 ##
@@ -699,6 +707,7 @@ IOQ_OBJS=\
   ioq_getln.o \
   ioq_init.o \
   ioq_put.o \
+  ioq_putfd.o \
   ioq_putfile.o \
   ioq_stderr.o \
   ioq_stdin.o \
@@ -716,6 +725,9 @@ ioq_init.o : ioq/ioq_init.c ioq.h
 
 ioq_put.o : ioq/ioq_put.c ioq.h
 	$(CC) $(CFLAGS) -c ioq/ioq_put.c
+
+ioq_putfd.o : ioq/ioq_putfd.c ioq.h
+	$(CC) $(CFLAGS) -c ioq/ioq_putfd.c
 
 ioq_putfile.o : ioq/ioq_putfile.c ioq.h
 	$(CC) $(CFLAGS) -c ioq/ioq_putfile.c
@@ -1178,9 +1190,13 @@ tx64_encode.o : tx64/tx64_encode.c tx64.h
 ##
 UFUNC_OBJS=\
  ufunc_u32add.o \
+ ufunc_u48add.o \
 
 ufunc_u32add.o : ufunc/ufunc_u32add.c ufunc.h
 	$(CC) $(CFLAGS) -c ufunc/ufunc_u32add.c
+
+ufunc_u48add.o : ufunc/ufunc_u48add.c ufunc.h
+	$(CC) $(CFLAGS) -c ufunc/ufunc_u48add.c
 
  
 ##
@@ -1189,12 +1205,15 @@ ufunc_u32add.o : ufunc/ufunc_u32add.c ufunc.h
 UPAK_OBJS=\
  upak_pack.o \
  upak_unpack.o \
+ upak_vpack.o \
  upak16_pack.o \
  upak16_unpack.o \
  upak24_pack.o \
  upak24_unpack.o \
  upak32_pack.o \
  upak32_unpack.o \
+ upak48_pack.o \
+ upak48_unpack.o \
  upak64_pack.o \
  upak64_unpack.o \
 
@@ -1203,6 +1222,9 @@ upak_pack.o : upak/upak_pack.c upak.h
 
 upak_unpack.o : upak/upak_unpack.c upak.h
 	$(CC) $(CFLAGS) -c upak/upak_unpack.c
+
+upak_vpack.o : upak/upak_vpack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak_vpack.c
 
 upak16_pack.o : upak/upak16_pack.c upak.h
 	$(CC) $(CFLAGS) -c upak/upak16_pack.c
@@ -1221,6 +1243,12 @@ upak32_pack.o : upak/upak32_pack.c upak.h
 
 upak32_unpack.o : upak/upak32_unpack.c upak.h
 	$(CC) $(CFLAGS) -c upak/upak32_unpack.c
+
+upak48_pack.o : upak/upak48_pack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak48_pack.c
+
+upak48_unpack.o : upak/upak48_unpack.c upak.h
+	$(CC) $(CFLAGS) -c upak/upak48_unpack.c
 
 upak64_pack.o : upak/upak64_pack.c upak.h
 	$(CC) $(CFLAGS) -c upak/upak64_pack.c

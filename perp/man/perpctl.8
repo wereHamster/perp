@@ -1,7 +1,7 @@
 .\" perpctl.8
-.\" wcm, 2009.12.01 - 2011.02.01
+.\" wcm, 2009.12.01 - 2013.01.07
 .\" ===
-.TH perpctl 8 "March 2011" "perp-2.04" "persistent process supervision"
+.TH perpctl 8 "January 2013" "perp-2.07" "persistent process supervision"
 .de ZZ
 .  br
 .  ns
@@ -121,6 +121,9 @@ will remove a pause flag on the service.
 .B k
 (kill)
 .ZZ
+.B q
+(quit)
+.ZZ
 .B t
 (term)
 .ZZ
@@ -134,7 +137,7 @@ will remove a pause flag on the service.
 (usr2)
 .RS
 Send the service a corresponding signal:
-SIGALRM, SIGHUP, SIGINT, SIGKILL, SIGTERM, SIGWINCH, SIGUSR1 or SIGUSR2.
+SIGALRM, SIGHUP, SIGINT, SIGKILL, SIGQUIT, SIGTERM, SIGWINCH, SIGUSR1 or SIGUSR2.
 .RE
 .PP
 .B D

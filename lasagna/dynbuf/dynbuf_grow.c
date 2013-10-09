@@ -1,6 +1,5 @@
-/*
-** dynbuf_grow.c
-** wcm, 2004.04.20 - 2004.04.29
+/* dynbuf_grow.c
+** wcm, 2004.04.20 - 2012.07.25
 ** ===
 */
 #include <stddef.h>
@@ -8,7 +7,7 @@
 
 
 int
-dynbuf_grow(dynbuf *d, size_t add)
+dynbuf_grow(struct dynbuf *d, size_t add)
 {
     if(d->buf)
         add += d->p;
@@ -16,4 +15,4 @@ dynbuf_grow(dynbuf *d, size_t add)
     return dynbuf_need(d, add);
 }
 
-/* that's all, folks! */
+/* eof: dynbuf_grow.c */

@@ -1,7 +1,7 @@
 /* runlimit.c
 ** exec prog with resource limits 
 ** (update/replace djb softlimit facility)
-** wcm, 2009.09.08 - 2011.02.08
+** wcm, 2009.09.08 - 2013.01.07
 ** ===
 */
 
@@ -15,7 +15,6 @@
 
 /* lasagna: */
 #include "cstr.h"
-#include "dynbuf.h"
 #include "execvx.h"
 #include "ioq.h"
 #include "nextopt.h"

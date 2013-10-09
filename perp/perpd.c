@@ -1,7 +1,7 @@
 /* perpd.c
 ** perp: persistent process supervision
 ** perpd 2.0: single process scanner/supervisor/controller
-** wcm, 2010.12.28 - 2011.02.17
+** wcm, 2010.12.28 - 2013.01.07
 ** ===
 */
 
@@ -353,6 +353,7 @@ perpd_waitup(void)
       }
 
       subsv = &svdefs[i].svpair[which];
+      subsv->pid_prev = pid;
       subsv->pid = 0;
       subsv->wstat = wstat;
       /* if terminating from running "once", set want down: */

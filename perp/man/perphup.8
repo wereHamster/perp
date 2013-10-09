@@ -1,7 +1,7 @@
 .\" perphup.8
-.\" wcm, 2009.12.01 - 2011.03.18
+.\" wcm, 2009.12.01 - 2013.01.09
 .\" ===
-.TH perphup 8 "March 2011" "perp-2.04" "persistent process supervision"
+.TH perphup 8 "January 2013" "perp-2.07" "persistent process supervision"
 .SH NAME
 perphup \- trigger a
 .BR perpd (8)
@@ -14,7 +14,11 @@ rescan
 .B perphup
 is used to trigger
 .BR perpd (8)
-to rescan its directory of service definitions.
+to rescan its service installation directory.
+.B perphup
+may also be used to trigger the controlled shutdown of
+.BR perpd (8)
+and all of its services.
 .PP
 .B perphup
 looks for an instance of

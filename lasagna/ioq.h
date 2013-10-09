@@ -1,6 +1,6 @@
 /* ioq.h
 ** ioq: buffered ("queued") io operations
-** wcm, 2004.04.21 - 2010.01.07
+** wcm, 2004.04.21 - 2012.07.24
 ** ===
 */
 #ifndef IOQ_H
@@ -191,6 +191,21 @@ extern int ioq_flush(ioq_t *ioq);
 */
 extern int ioq_put(ioq_t *ioq, const uchar_t *data, size_t len);
 
+/* ioq_putfd()
+**   append contents of open file descriptor fd to internal buffer
+**   calls ioq_flush() as needed to handle all bytes of file
+**   return
+**     0 : success, no error
+**    -1 : mmap(), or write() error, errno set
+**
+**   notes:
+**     caller supplies size of open/readable fd from stat() call
+**     uses mmap()
+**     does not perform final ioq_flush()
+**     does not close() fd
+*/
+extern int ioq_putfd(ioq_t *ioq, int fd, size_t len);
+
 /* ioq_putfile()
 **   append contents of filename to internal buffer
 **   calls ioq_flush() as needed to handle all bytes of file
@@ -199,6 +214,8 @@ extern int ioq_put(ioq_t *ioq, const uchar_t *data, size_t len);
 **    -1 : open(), stat(), mmap(), or write() error, errno set
 **
 **   notes:
+**     calls open(), stat(), close(), etc.
+**     calls ioq_putfd()
 **     uses mmap()
 **     does not perform final ioq_flush()
 */

@@ -1,6 +1,5 @@
-/*
-** dynbuf_need.c
-** wcm, 2004.04.20 - 2004.04.20
+/* dynbuf_need.c
+** wcm, 2004.04.20 - 2012.07.25
 ** ===
 */
 #include <stddef.h>
@@ -9,7 +8,7 @@
 #include "dynbuf.h"
 
 int
-dynbuf_need(dynbuf *d, size_t need)
+dynbuf_need(struct dynbuf *d, size_t need)
 {
     size_t have = d->n;
 
@@ -30,4 +29,4 @@ dynbuf_need(dynbuf *d, size_t need)
     return 0;  /* no error */
 }
 
-/* that's all, folks! */
+/* eof: dynbuf_need.c */

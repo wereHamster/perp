@@ -1,7 +1,7 @@
 .\" perpetrate.5
-.\" wcm, 2009.12.02 - 2011.02.01
+.\" wcm, 2009.12.02 - 2013.01.09
 .\" ===
-.TH perpetrate 5 "March 2011" "perp-2.04" "persistent process supervision"
+.TH perpetrate 5 "January 2013" "perp-2.07" "persistent process supervision"
 .SH NAME
 perpetrate \- conventions for runscripts
 .SH DESCRIPTION
@@ -342,6 +342,41 @@ Simpler runscripts run faster,
 are easier to maintain and diagnose,
 have fewer unexpected side effects,
 and are generally more portable among different host installations.
+.SH ENVIRONMENT
+In addition to the positional arguments supplied to the runscript,
+certain other variables are also defined within the runscript environment.
+.PP
+The PERP_BASE variable is defined for both ``start'' and ``reset'' targets.
+This variable provides the base directory of the service installation,
+normally
+.IR /etc/perp ,
+and as described in
+.BR perpd (8).
+The definition of PERP_BASE permits the use of such
+.B perp
+utilities
+as
+.BR perpok (8)
+and
+.BR perpctl (8)
+directly within runscripts,
+where they may then easily reference any other service definitions as necessary.
+.PP
+The PERP_SVPID variable is defined for both ``start'' and ``reset'' targets.
+For the ``start'' target,
+PERP_SVPID gives the process ID of the service that will be started.
+For the ``reset'' target,
+PERP_SVPID gives the process ID of the service that has just terminated.
+Runscripts may choose to use the PERP_SVPID variable to generate output that
+cleanly brackets the complete life\-cycle of a service within service logs,
+or for any other purpose of reporting and notification.
+.PP
+The PERP_SVSECS variable is defined only for the ``reset'' target.
+It gives the total wallclock uptime, in seconds,
+of the service that has just terminated.
+Runscripts running ``reset'' may choose to use PERP_SVSECS
+for logging the uptime of a service,
+or for any other purpose of reporting and notification.
 .SH COMPATIBILITY
 For users familiar with the daemontools package,
 the runscript conventions described here

@@ -1,6 +1,6 @@
 /* cdb.h
 ** constant (hash) database on disk
-** wcm, 2010.05.27 - 2010.12.07
+** wcm, 2010.05.27 - 2012.07.25
 ** ===
 */
 
@@ -245,7 +245,7 @@ extern int cdb_get(cdb_t *C, uchar_t *buffer, size_t len);
 **     before each cdb_dynget()
 **
 */
-extern int cdb_dynget(cdb_t *C, dynbuf *D);
+extern int cdb_dynget(cdb_t *C, dynbuf_t *D);
 
 /* cdb_distance()
 **   after successful cdb_find(), return "distance" from target hash slot
@@ -304,7 +304,7 @@ extern int cdb_read(cdb_t *C, uchar_t *buf, size_t len, uint32_t offset);
 **     for copy (not append) into D->buf[0], use dynbuf_CLEAR(D)
 **     before each cdb_dynread()
 */
-extern int cdb_dynread(cdb_t *C, dynbuf *B, size_t len, uint32_t offset);
+extern int cdb_dynread(cdb_t *C, dynbuf_t *B, size_t len, uint32_t offset);
 
 /* cdb_cc()
 **   duplicate an initialized cdb_t object from src to dest

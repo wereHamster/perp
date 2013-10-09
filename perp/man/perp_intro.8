@@ -1,18 +1,19 @@
 .\" perp_intro.8
-.\" wcm, 2009.12.04 - 2011.01.31
+.\" wcm, 2009.12.04 - 2013.01.09
 .\" ===
-.TH perp_intro 8 "March 2011" "perp-2.04" "persistent process supervision"
+.TH perp_intro 8 "January 2013" "perp-2.07" "persistent process supervision"
 .SH NAME
-perp_intro \- introduction to persistent process supervision
+perp_intro \- introduction to the perp service management framework
 .SH SYNOPSIS
 .I /etc/perp
 .SH DESCRIPTION
 .SS Purpose
 The
 .B perp
-distribution is a set of daemons and utilities to
+service management framework provides a set of daemons and utilities to
 start, monitor, log, and control a collection of persistent processes.
-This document provides an overview of the system.
+This document provides a basic overview of the system.
+Further details may be found in the manual pages as referenced.
 .SS Terms
 .TP
 ``persistent process''
@@ -32,8 +33,10 @@ the set of
 runscripts and associated files that tell the
 .BR perpd (8)
 program how to start, run, and optionally log a service.
-The service definition for some service ``foo''
-will be installed in the service definition directory
+The base directory for a collection of service definitions is normally
+.IR /etc/perp .
+The service definition for a particular service ``foo''
+will then be installed in the service definition directory
 .IR /etc/perp/foo .
 .TP
 ``service activation''
@@ -58,14 +61,15 @@ commands to the
 .BR perpctl (8)
 utility.
 .TP
-``service supervisor''
+``process supervisor''
 Some program, itself a persistent process,
 that starts and monitors another program to ensure its persistency.
 .SS Daemon Programs
 .TP
 .BR perpd (8)
-service directory scanner, supervisor and controller,
-operating on
+the principal daemon of a perp installation:
+service directory scanner, process supervisor, and service controller;
+normally operating on the service installation directory
 .I /etc/perp
 .TP
 .BR perpboot (8)
@@ -88,13 +92,13 @@ rescan trigger utility for
 .SS Query Programs
 .TP
 .BR perpls (8)
-list persistent processes
+perp service lister 
 .TP
 .BR perpstat (8)
-report status of persistent processes
+perp status reporter
 .TP
 .BR perpok (8)
-check persistent process
+perp service checker
 .SS Logging Programs
 .TP
 .BR sissylog (8)
@@ -104,9 +108,9 @@ log stdin to
 .BR tinylog (8)
 log stdin to directory of rotated logfiles
 .SH FILES
-The service directory
+The service installation directory
 .I /etc/perp
-will have the following structure:
+will have the following layout:
 .TP
 .I /etc/perp
 base directory for service installation, monitored by

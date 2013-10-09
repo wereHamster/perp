@@ -1,7 +1,37 @@
 # CHANGES
 # perp release history and changelog
-# wcm, 2010.02.17 - 2011.03.22
+# wcm, 2010.02.17 - 2013.01.11
 # ===
+
+perp-2.07 (2013.01.11):
+ * libasanga:
+   - merge small cleanups from development branch
+ * perpd:
+   - add support for PERP_SVPID, PERP_SVSECS within runscripts
+   - documentation added to perpd(8) and perpetrate(5)
+ * perpd_svdef.c:
+   - fixed scope of buffer declaration in perpd_svdef_run()
+ * conf.mk:
+   - support user-defined strip utility
+ * perpctl.8, runargv0.8:
+   - fix some omission and typo errors
+
+perp-2.06 (2013.01.11):
+ * withdrawn:
+   - bad version number in release
+
+perp-2.05 (2012.01.04):
+ * runuid:
+   - added option -g, set base group permission
+   - added option -s, set supplemental groups with initgroups(3)
+   - added option -S, set supplemental groups from list
+   - manpage updated
+ * perp-setup:
+   - fixed error in /etc/perp/.control symlink setup/initialization
+ * perpd:
+   - fixed "reset" targets to get correct exit/wstat arguments
+ * perpstat:
+   - fixed message for usage help
 
 perp-2.04 (2011.03.22):
  * perphup:
