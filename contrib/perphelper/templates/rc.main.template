@@ -1,0 +1,46 @@
+#!/bin/sh
+exec 2>&1
+
+TARGET=${1}
+SVNAME=${2}
+
+##
+## Replace #'s in EXECBIN with the path to the executable
+## that you want to be controlled by perpd
+##
+## The executable should not be run as a daemon process,
+## as perpd will continue to start it, unless of course
+## you update the start() function below
+##
+EXECBIN="##################"
+
+
+start()
+{
+    echo "Starting ${SVNAME}..."
+
+    ## extra environment configuration
+    #export PATH=".:$PATH"
+
+    ## if running as a special user refer to runuid manpage
+    #exec runuid <user> ${EXECBIN}
+    exec ${EXECBIN}
+}
+
+reset()
+{
+    case $3 in
+        'exit')
+          echo "Resetting ${SVNAME}: ... EXIT status $4"
+        ;;
+        'signal')
+          echo "Resetting ${SVNAME}: ... KILLED signal $5"
+        ;;
+        *)
+          echo "Resetting ${SVNAME}: ... STOPPED ($3)"
+        ;;
+    esac
+    exit 0
+}
+
+eval ${TARGET} "$@"
